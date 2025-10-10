@@ -1,0 +1,190 @@
+{
+  "user": {
+    "name": "Maria Silva",
+    "email": "maria@example.com"
+  },
+  "appointments": [
+    {
+      "id": "1",
+      "clientName": "João Santos",
+      "service": "Consultoria",
+      "date": "2025-10-10",
+      "time": "10:00",
+      "status": "concluido",
+      "duration": 60,
+      "value": 350.00,
+      "paymentStatus": "paid",
+      "paymentMethod": "PIX"
+    },
+    {
+      "id": "2",
+      "clientName": "Ana Costa",
+      "service": "Acompanhamento",
+      "date": "2025-10-10",
+      "time": "14:30",
+      "status": "Agendado",
+      "duration": 90,
+      "value": 450.00,
+      "paymentStatus": "pending",
+      "paymentMethod": "Cartão"
+    },
+    {
+      "id": "3",
+      "clientName": "Pedro Oliveira",
+      "service": "Consultoria",
+      "date": "2025-10-10",
+      "time": "16:00",
+      "status": "Agendado",
+      "duration": 120,
+      "value": 500.00,
+      "paymentStatus": "pending",
+      "paymentMethod": "Dinheiro"
+    },
+    {
+      "id": "4",
+      "clientName": "Carla Mendes",
+      "service": "Sessão",
+      "date": "2025-10-15",
+      "time": "15:00",
+      "status": "Agendado",
+      "duration": 45,
+      "value": 250.00,
+      "paymentStatus": "pending",
+      "paymentMethod": "PIX"
+    },
+    {
+      "id": "5",
+      "clientName": "Roberto Lima",
+      "service": "Acompanhamento",
+      "date": "2025-10-16",
+      "time": "11:00",
+      "status": "cancelado",
+      "duration": 60,
+      "value": 350.00,
+      "paymentStatus": "pending",
+      "paymentMethod": "Cartão"
+    },
+    {
+      "id": "6",
+      "clientName": "Fernanda Alves",
+      "service": "Consultoria",
+      "date": "2025-10-11",
+      "time": "09:00",
+      "status": "não compareceu",
+      "duration": 30,
+      "value": 200.00,
+      "paymentStatus": "overdue",
+      "paymentMethod": "Dinheiro"
+    },
+    {
+      "id": "7",
+      "clientName": "João Santos",
+      "service": "Acompanhamento",
+      "date": "2025-10-08",
+      "time": "14:00",
+      "status": "concluido",
+      "duration": 60,
+      "value": 350.00,
+      "paymentStatus": "paid",
+      "paymentMethod": "PIX"
+    },
+    {
+      "id": "8",
+      "clientName": "Ana Costa",
+      "service": "Sessão",
+      "date": "2025-10-18",
+      "time": "10:00",
+      "status": "Agendado",
+      "duration": 60,
+      "value": 300.00,
+      "paymentStatus": "pending",
+      "paymentMethod": "PIX"
+    },
+    {
+      "id": "9",
+      "clientName": "Carlos Silva",
+      "service": "Consultoria",
+      "date": "2025-10-20",
+      "time": "16:30",
+      "status": "Agendado",
+      "duration": 90,
+      "value": 450.00,
+      "paymentStatus": "pending",
+      "paymentMethod": "Cartão"
+    },
+    {
+      "id": "10",
+      "clientName": "Mariana Santos",
+      "service": "Acompanhamento",
+      "date": "2025-10-05",
+      "time": "09:30",
+      "status": "concluido",
+      "duration": 60,
+      "value": 350.00,
+      "paymentStatus": "paid",
+      "paymentMethod": "Dinheiro"
+    }
+  ],
+  "financial": {
+    "received": 4850.00,
+    "pending": 2300.00,
+    "thisMonth": {
+      "received": 4850.00,
+      "pending": 2300.00
+    },
+    "monthlyIncome": [
+      { "month": "Jan", "received": 3200.00 },
+      { "month": "Fev", "received": 3800.00 },
+      { "month": "Mar", "received": 4100.00 },
+      { "month": "Abr", "received": 3900.00 },
+      { "month": "Mai", "received": 4500.00 },
+      { "month": "Jun", "received": 4200.00 },
+      { "month": "Jul", "received": 4800.00 },
+      { "month": "Ago", "received": 5100.00 },
+      { "month": "Set", "received": 4600.00 },
+      { "month": "Out", "received": 4850.00 }
+    ]
+  },
+  "clients": [
+    {
+      "id": "1",
+      "name": "João Santos",
+      "email": "joao@example.com",
+      "phone": "(11) 98765-4321",
+      "totalPaid": 1200.00,
+      "status": "ativo"
+    },
+    {
+      "id": "2",
+      "name": "Ana Costa",
+      "email": "ana@example.com",
+      "phone": "(11) 98765-1234",
+      "totalPaid": 850.00,
+      "status": "ativo"
+    },
+    {
+      "id": "3",
+      "name": "Pedro Oliveira",
+      "email": "pedro@example.com",
+      "phone": "(11) 98765-5678",
+      "totalPaid": 1500.00,
+      "status": "ativo"
+    },
+    {
+      "id": "4",
+      "name": "Carla Mendes",
+      "email": "carla@example.com",
+      "phone": "(11) 98765-8765",
+      "totalPaid": 600.00,
+      "status": "ativo"
+    },
+    {
+      "id": "5",
+      "name": "Roberto Lima",
+      "email": "roberto@example.com",
+      "phone": "(11) 98765-4567",
+      "totalPaid": 700.00,
+      "status": "ativo"
+    }
+  ]
+}
