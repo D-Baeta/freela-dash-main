@@ -3,35 +3,97 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { Calendar } from "lucide-react";
+import { Calendar, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 const Login = () => {
+  const { login, register } = useAuth();
   const navigate = useNavigate();
+  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [profession, setProfession] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const validatePassword = (pwd: string) => {
+    const hasMinLength = pwd.length >= 6;
+    const hasLetter = /[a-zA-Z]/.test(pwd);
+    return hasMinLength && hasLetter;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Simulação de login - qualquer email/senha funciona
-    if (email && password) {
-      toast({
-        title: "Login realizado!",
-        description: "Bem-vindo de volta ao Organiza Pro",
-      });
-      
-      // Pequeno delay para mostrar o toast
-      setTimeout(() => {
-        navigate("/home");
-      }, 500);
+    if (isRegister) {
+      // Validação de registro
+      if (!email || !password || !confirmPassword || !name || !profession) {
+        toast({
+          title: "Erro",
+          description: "Por favor, preencha todos os campos",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!validatePassword(password)) {
+        toast({
+          title: "Senha inválida",
+          description: "A senha deve ter no mínimo 6 caracteres e conter pelo menos 1 letra",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        toast({
+          title: "Erro",
+          description: "As senhas não coincidem",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try{
+        await register(email, password, name, profession);
+
+        toast({
+          title: "Cadastro realizado!",
+          description: `Bem-vindo, ${name}!`,
+        });
+
+        setTimeout(() => {
+          navigate("/home");
+        }, 500);
+      } catch (err: any) {
+        toast({
+          title: "Erro",
+          description: err.message,
+          variant: "destructive",
+        });
+      }
+
     } else {
-      toast({
-        title: "Erro",
-        description: "Por favor, preencha todos os campos",
-        variant: "destructive",
-      });
-    }
+        try {
+          await login(email, password);
+          toast({
+            title: "Login realizado!",
+            description: "Bem-vindo de volta ao Organiza Pro",
+          });
+
+          setTimeout(() => {
+            navigate("/home");
+          }, 500);
+        } catch (err: any) {
+          toast({
+            title: "Erro",
+            description: err.message,
+            variant: "destructive",
+          });
+        }
+      }
   };
 
   return (
@@ -49,15 +111,48 @@ const Login = () => {
 
           {/* Welcome Text */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Bem-vindo de volta</h1>
-            <p className="text-muted-foreground">
-              Entre na sua conta para gerenciar seu negócio
-            </p>
+            <h1 className="text-3xl font-bold mb-2">
+                {isRegister ? "Criar conta" : "Bem-vindo de volta"}
+              </h1>
+              <p className="text-muted-foreground">
+                {isRegister 
+                  ? "Preencha os dados para criar sua conta" 
+                  : "Entre na sua conta para gerenciar seu negócio"
+                }
+              </p>
           </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {isRegister && (
+              <>
+                <div className="space-y-1">
+                  <Label htmlFor="name">Nome completo</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Seu nome"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-12"
+                    required
+                  />
+                </div>
 
-          {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
+                <div className="space-y-1">
+                  <Label htmlFor="profession">Profissão</Label>
+                  <Input
+                    id="profession"
+                    type="text"
+                    placeholder="Ex: Psicólogo, Personal Trainer..."
+                    value={profession}
+                    onChange={(e) => setProfession(e.target.value)}
+                    className="h-12"
+                    required
+                  />
+                </div>
+              </>
+            )}
+            <div className="space-y-1">
               <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
@@ -70,41 +165,87 @@ const Login = () => {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
-                <a 
-                  href="#" 
-                  className="text-sm text-primary hover:underline"
-                  onClick={(e) => e.preventDefault()}
-                >
-                  Esqueceu a senha?
-                </a>
+                {!isRegister && (
+                  <a 
+                    href="#" 
+                    className="text-sm text-primary hover:underline"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    Esqueceu a senha?
+                  </a>
+                )}
               </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-12"
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {isRegister && (
+                <p className="text-xs text-muted-foreground">
+                  Mínimo 6 caracteres e pelo menos 1 letra
+                </p>
+              )}
             </div>
 
+            {isRegister && (
+              <div className="space-y-1">
+                <Label htmlFor="confirmPassword">Confirmar senha</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="h-12 pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+            )}
             <Button 
               type="submit" 
               className="w-full h-12 text-base shadow-glow hover:shadow-lg transition-smooth"
             >
-              Entrar
+              {isRegister ? "Criar conta" : "Entrar"}
             </Button>
           </form>
 
-          {/* Demo Info */}
-          <div className="mt-8 p-4 bg-secondary/50 rounded-lg border border-border">
-            <p className="text-sm text-muted-foreground text-center">
-              <strong>Demo:</strong> Use qualquer e-mail e senha para entrar
-            </p>
+          {/* Toggle Register/Login */}
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setIsRegister(!isRegister)}
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              {isRegister 
+                ? "Já tem uma conta? Entrar" 
+                : "Cadastre-se"
+              }
+            </button>
           </div>
 
           {/* Back to Landing */}
