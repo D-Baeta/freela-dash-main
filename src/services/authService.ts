@@ -44,12 +44,12 @@ export const authService = {
   },
 
   /** Log in an existing user */
-  loginUser({ email, password }: LoginData) {
-    return signInWithEmailAndPassword(auth, email, password);
+  async loginUser({ email, password }: LoginData) {
+    return await signInWithEmailAndPassword(auth, email, password);
   },
 
   /** Log out the current user */
-  logoutUser() {
-    return signOut(auth);
+  async logoutUser() {
+    return await signOut(auth);
   },
 };

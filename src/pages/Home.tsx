@@ -5,12 +5,14 @@ import { Calendar, Clock, User, MapPin } from "lucide-react";
 import dummyData from "@/data/dummyData.json";
 import { format, parseISO, isToday, isFuture, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useAuthContext } from "@/context/AuthContext";
+import { useUserContext } from "../contexts/UserContext";
 
 const Home = () => {
-  const { user } = useAuthContext();
-  const { appointments } = dummyData;
+  const { user , loading: userLoading } = useUserContext();
+  
+  if(!user) return;
 
+  const { appointments } = dummyData;
   // Get current date and time
   const now = new Date();
 

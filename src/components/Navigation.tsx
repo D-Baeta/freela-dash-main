@@ -1,17 +1,21 @@
 import { Calendar, LayoutDashboard, DollarSign, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
-import dummyData from "@/data/dummyData.json";
+import { useUserContext } from "../contexts/UserContext";
 
 export const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const { user , loading: userLoading } = useUserContext();
+  
+  if(!user) return;
+
   const navItems = [
     { path: "/home", icon: Home, label: "Início" },
-    { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/calendar", icon: Calendar, label: "Agenda" },
     { path: "/financial-records", icon: DollarSign, label: "Financeiro" },
+    { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   ];
 
   return (
@@ -47,8 +51,8 @@ export const Navigation = () => {
 
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium">{dummyData.user.name}</p>
-              <p className="text-xs text-muted-foreground">{dummyData.user.email}</p>
+              <p className="text-sm font-medium">{user.name}</p>
+              <p className="text-xs text-muted-foreground">{user.email}</p>
             </div>
             <Button 
               variant="outline" 

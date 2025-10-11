@@ -1,26 +1,32 @@
-import { useState } from "react";
+// hooks/use-auth.ts
+import { useState, useEffect } from "react";
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { auth } from "../services/firebase-config";
 import { authService } from "../services/authService";
 
 export function useAuth() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
 
   const register = async (email: string, password: string, name: string, profession: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      await authService.registerUser({ email, password, name, profession });
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    return await authService.registerUser({ email, password, name, profession });
   };
 
-  const login = (email: string, password: string) =>
-    authService.loginUser({ email, password });
+  const login = async (email: string, password: string) => {
+    return await authService.loginUser({ email, password });
+  };
 
-  const logout = () => authService.logoutUser();
+  const logout = async () => {
+    await authService.logoutUser();
+  };
 
-  return { register, login, logout, loading, error };
+  return { firebaseUser, loading, register, login, logout };
 }
