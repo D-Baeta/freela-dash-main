@@ -28,7 +28,8 @@ export const appointmentService = {
   },
 
   async update(appointmentId: string, data: Partial<Appointment>) {
-    await updateDoc(doc(appointmentsRef, appointmentId), data);
+    const { client, ...dataWithoutClient } = data;
+    await updateDoc(doc(appointmentsRef, appointmentId), dataWithoutClient);
   },
 
   async delete(appointmentId: string) {
