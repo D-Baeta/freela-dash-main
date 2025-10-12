@@ -34,7 +34,7 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8 animate-fade-in">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            Olá, {dummyData.user.name.split(' ')[0]}! 👋
+            Dashboard
           </h1>
           <p className="text-muted-foreground">
             Aqui está um resumo do seu mês

@@ -67,7 +67,7 @@ const Login = () => {
         setTimeout(() => {
           navigate("/home");
         }, 500);
-      } catch (err: any) {
+      } catch (err) {
         toast({
           title: "Erro",
           description: err.message,
@@ -86,7 +86,7 @@ const Login = () => {
           setTimeout(() => {
             navigate("/home");
           }, 500);
-        } catch (err: any) {
+        } catch (err) {
           toast({
             title: "Erro",
             description: err.message,
@@ -112,7 +112,7 @@ const Login = () => {
           {/* Welcome Text */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">
-                {isRegister ? "Criar conta" : "Bem-vindo de volta"}
+                {isRegister ? "Criar conta" : "Bem-vindo"}
               </h1>
               <p className="text-muted-foreground">
                 {isRegister 
@@ -168,15 +168,7 @@ const Login = () => {
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
-                {!isRegister && (
-                  <a 
-                    href="#" 
-                    className="text-sm text-primary hover:underline"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    Esqueceu a senha?
-                  </a>
-                )}
+                {!isRegister}
               </div>
               <div className="relative">
                 <Input

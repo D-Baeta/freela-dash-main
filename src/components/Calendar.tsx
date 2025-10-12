@@ -5,16 +5,10 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-reac
 import { CheckCircle2, XCircle, Clock, AlertCircle } from "lucide-react";
 import { AppointmentEditDialog } from "./AppointmentEditDialog";
 import { toast } from "sonner";
-
-interface Appointment {
-  id: string;
-  clientName: string;
-  service: string;
-  date: string;
-  time: string;
-  status: string;
-  duration?: number; // duration in minutes, defaults to 60
-}
+import { Appointment , appointmentStatusColors } from "@/types/models";
+import { parseISO } from "date-fns";
+import { useAppointments } from "../hooks/use-appointments";
+import { useAuthContext } from "../contexts/AuthContext";
 
 interface CalendarProps {
   appointments: Appointment[];
@@ -22,6 +16,8 @@ interface CalendarProps {
 
 export const Calendar = ({ appointments }: CalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const { firebaseUser } = useAuthContext();
+  const { editAppointment } = useAppointments(firebaseUser?.uid);
 
   const getWeekDays = (date: Date) => {
     const week = [];
@@ -57,13 +53,6 @@ export const Calendar = ({ appointments }: CalendarProps) => {
     setCurrentDate(new Date());
   };
 
-  const formatDayHeader = (date: Date) => {
-    return new Intl.DateTimeFormat('pt-BR', {
-      weekday: 'short',
-      day: 'numeric'
-    }).format(date);
-  };
-
   const formatMonthYear = (date: Date) => {
     return new Intl.DateTimeFormat('pt-BR', {
       month: 'long',
@@ -78,7 +67,7 @@ export const Calendar = ({ appointments }: CalendarProps) => {
 
   const getAppointmentsForDay = (date: Date) => {
     return appointments.filter(apt => {
-      const aptDate = new Date(apt.date);
+      const aptDate = new Date(parseISO(apt.date));
       return aptDate.toDateString() === date.toDateString();
     });
   };
@@ -95,50 +84,22 @@ export const Calendar = ({ appointments }: CalendarProps) => {
     return (duration * heightPerMinute) - 4; // subtract 4px for padding
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "concluido":
-        return "bg-green-600 border-l-4 border-l-green-700";
-      case "Agendado":
-        return "bg-blue-600 border-l-4 border-l-blue-700";
-      case "cancelado":
-        return "bg-red-500 border-l-4 border-l-red-600";
-      case "não compareceu":
-        return "bg-orange-500 border-l-4 border-l-orange-600";
-      default:
-        return "bg-blue-600 border-l-4 border-l-blue-700";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "concluido":
-        return <CheckCircle2 className="w-3 h-3 text-white flex-shrink-0" />;
-      case "Agendado":
-        return <Clock className="w-3 h-3 text-white flex-shrink-0" />;
-      case "cancelado":
-        return <XCircle className="w-3 h-3 text-white flex-shrink-0" />;
-      case "não compareceu":
-        return <AlertCircle className="w-3 h-3 text-white flex-shrink-0" />;
-      default:
-        return <Clock className="w-3 h-3 text-white flex-shrink-0" />;
-    }
-  };
 
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleAppointmentClick = (appointment: Appointment) => {
-    console.log("Appointment clicked:", appointment);
     setSelectedAppointment(appointment);
     setIsDialogOpen(true);
   };
 
   const handleSaveAppointment = (updatedAppointment: Appointment) => {
-    // In a real app, this would update the backend
-    // For now, we'll just show a toast
-    toast.success("Compromisso atualizado com sucesso!");
-    console.log("Updated appointment:", updatedAppointment);
+    try {
+      editAppointment(updatedAppointment.id, updatedAppointment);
+      toast.success("Compromisso atualizado com sucesso!");
+    } catch (err) {
+      toast.success("Error ao atualizar o compromisso.");
+    }
   };
 
   const handleDialogChange = (open: boolean) => {
@@ -238,7 +199,7 @@ export const Calendar = ({ appointments }: CalendarProps) => {
                       key={`${day.toISOString()}-${appointment.id}`}
                       onClick={() => handleAppointmentClick(appointment)}
                       className={`absolute rounded-md p-2 cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] z-10 ${
-                        getStatusColor(appointment.status)
+                        appointmentStatusColors[appointment.status]
                       }`}
                       style={{ 
                         top: `${topPosition}px`,
@@ -247,13 +208,8 @@ export const Calendar = ({ appointments }: CalendarProps) => {
                         height: `${cardHeight}px`
                       }}
                     >
-                      <div className="text-[11px] font-semibold text-white mb-1 flex items-center gap-1.5">
-                        <span>{appointment.time}</span>
-                        <span className="text-[10px] font-normal">•</span>
-                        <span className="text-[10px] font-normal truncate">{appointment.service}</span>
-                      </div>
                       <div className="text-[11px] font-medium text-white truncate">
-                        {appointment.clientName}
+                        {appointment.client.name}
                       </div>
                     </div>
                   );

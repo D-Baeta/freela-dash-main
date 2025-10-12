@@ -73,13 +73,6 @@ const Landing = () => {
               Começar agora
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="text-lg h-14 px-8 hover:shadow-md transition-smooth"
-            >
-              Ver demonstração
-            </Button>
           </div>
         </div>
       </section>

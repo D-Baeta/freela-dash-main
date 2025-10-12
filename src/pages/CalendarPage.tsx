@@ -1,9 +1,14 @@
 import { Navigation } from "@/components/Navigation";
 import { Calendar as CalendarComponent } from "@/components/Calendar";
-import dummyData from "@/data/dummyData.json";
+import { useAuthContext } from "../contexts/AuthContext";
+import { useAppointments } from "../hooks/use-appointments";
+
 
 const CalendarPage = () => {
-  const { appointments } = dummyData;
+  const { firebaseUser } = useAuthContext();
+  const { appointments, loading: appointmentLoading } = useAppointments(firebaseUser?.uid);
+
+  if(appointmentLoading) return;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">

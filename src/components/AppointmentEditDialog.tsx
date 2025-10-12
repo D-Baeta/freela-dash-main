@@ -13,19 +13,11 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, ChevronUp, ChevronDown } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { Appointment } from "@/types/models";
 
-interface Appointment {
-  id: string;
-  clientName: string;
-  service: string;
-  date: string;
-  time: string;
-  status: string;
-  duration?: number;
-}
 
 interface AppointmentEditDialogProps {
   appointment: Appointment | null;
@@ -45,9 +37,8 @@ export const AppointmentEditDialog = ({
 
   useEffect(() => {
     if (appointment && open) {
-      console.log("Setting appointment in dialog:", appointment);
       setEditedAppointment(appointment);
-      setSelectedDate(new Date(appointment.date));
+      setSelectedDate(new Date(parseISO(appointment.date)));
     }
   }, [appointment, open]);
 
@@ -55,7 +46,7 @@ export const AppointmentEditDialog = ({
     if (editedAppointment && selectedDate) {
       const updated = {
         ...editedAppointment,
-        date: format(selectedDate, "yyyy-MM-dd"),
+        date: format(selectedDate, "yyyy-MM-dd")
       };
       onSave(updated);
       onOpenChange(false);
@@ -64,14 +55,14 @@ export const AppointmentEditDialog = ({
 
   const handleCancel = () => {
     if (editedAppointment) {
-      onSave({ ...editedAppointment, status: "cancelado" });
+      onSave({ ...editedAppointment, status: "canceled" });
       onOpenChange(false);
     }
   };
 
   const handleNoShow = () => {
     if (editedAppointment) {
-      onSave({ ...editedAppointment, status: "não compareceu" });
+      onSave({ ...editedAppointment, status: "noShow" });
       onOpenChange(false);
     }
   };
@@ -123,16 +114,7 @@ export const AppointmentEditDialog = ({
             <Label htmlFor="client">Cliente</Label>
             <Input
               id="client"
-              value={editedAppointment.clientName}
-              disabled
-              className="bg-secondary/50 border-border text-foreground font-medium"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="service">Serviço</Label>
-            <Input
-              id="service"
-              value={editedAppointment.service}
+              value={editedAppointment.client.name}
               disabled
               className="bg-secondary/50 border-border text-foreground font-medium"
             />
