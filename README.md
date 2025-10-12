@@ -1,4 +1,4 @@
-# SaaS Autônomos – Frontend
+# SaaS Autônomos
 
 ## 🇵🇹 Português
 
