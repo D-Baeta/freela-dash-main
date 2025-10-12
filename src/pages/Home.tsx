@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, User, MapPin, ClipboardList, Plus } from "lucide-react";
 import { ClientModal } from "@/components/ClientModal";
-import { AppointmentModal } from "@/components/AppointmentModal";
+import { AppointmentModal } from "@/components/AppointmentCreateModal";
 import { format, parseISO, isToday, isFuture, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserContext } from "../contexts/UserContext";
 import { useAuthContext } from "../contexts/AuthContext";
-import { useAppointments } from "../hooks/use-appointments";
+import { useAppointments } from "../hooks/useAppointments";
 import { appointmentStatusLabels, appointmentStatusColors } from "../types/models"
 
 

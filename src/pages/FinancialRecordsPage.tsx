@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,27 +8,23 @@ import { CheckCircle2, Clock, AlertCircle, Edit, X, Calendar as CalendarIcon } f
 import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval, isBefore, startOfToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import dummyData from "@/data/dummyData.json";
-
-interface Appointment {
-  id: string;
-  clientName: string;
-  service: string;
-  date: string;
-  time: string;
-  status: string;
-  duration: number;
-  value: number;
-  paymentStatus: "paid" | "pending" | "overdue";
-  paymentMethod: string;
-}
+import { Appointment, getPaymentStatusBadge } from "@/types/models";
+import { useAuthContext } from "../contexts/AuthContext";
+import { useAppointments } from "@/hooks/useAppointments";
+import { usePayment } from "@/hooks/usePayment";
+import { AppointmentEditDialog } from "../components/AppointmentEditDialog";
+import { toast } from "sonner";
 
 const FinancialRecordsPage = () => {
-  const { appointments, financial } = dummyData;
+  const { firebaseUser } = useAuthContext();
+  const { appointments: ap, loading: appointmentLoading, editAppointment } = useAppointments(firebaseUser?.uid);
+  const { updatePayment, createPayment } = usePayment(firebaseUser?.uid);
   
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [weekFilter, setWeekFilter] = useState<string>("all");
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
+
+
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -38,9 +33,22 @@ const FinancialRecordsPage = () => {
     }).format(value);
   };
 
-  const handleMarkAsPaid = (appointmentId: string) => {
+  const handleMarkAsPaid = async (appointmentId: string) => {
     console.log(`Marking appointment ${appointmentId} as paid`);
-    // TODO: Implement mark as paid logic
+    try {
+      await editAppointment(appointmentId, { paymentStatus: "paid" });
+      const uniqueAp = ap.find(a => a.id == appointmentId)
+
+      await createPayment({ 
+        appointmentId: appointmentId,
+        value: uniqueAp.value,
+        method: "pix",
+        status: "paid",
+        date: new Date().toISOString().split('T')[0]
+      }); 
+    } catch (err) {
+      console.error("Erro ao marcar como pago:", err);
+    }
   };
 
   const handleEdit = (appointmentId: string) => {
@@ -48,14 +56,17 @@ const FinancialRecordsPage = () => {
     // TODO: Implement edit logic
   };
 
-  const handleCancel = (appointmentId: string) => {
-    console.log(`Canceling appointment ${appointmentId}`);
-    // TODO: Implement cancel logic
+  const handleCancel = async (appointmentId: string) => {
+    try {
+      await editAppointment(appointmentId, { status: "canceled", paymentStatus: "pending" });
+    } catch (err) {
+      console.error("Erro ao cancelar compromisso:", err);
+    }
   };
 
   // Filter appointments
   const filteredAppointments = useMemo(() => {
-    let filtered = appointments as Appointment[];
+    let filtered = ap;
 
     // Status filter
     if (statusFilter !== "all") {
@@ -83,65 +94,56 @@ const FinancialRecordsPage = () => {
       }
     }
 
-    // Payment method filter
-    if (paymentMethodFilter !== "all") {
-      filtered = filtered.filter(apt => apt.paymentMethod === paymentMethodFilter);
-    }
 
     // Client filter
     if (clientFilter !== "all") {
-      filtered = filtered.filter(apt => apt.clientName === clientFilter);
+      filtered = filtered.filter(apt => apt.client.name === clientFilter);
     }
 
     return filtered.sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
-  }, [appointments, statusFilter, weekFilter, paymentMethodFilter, clientFilter]);
+  }, [ap, statusFilter, weekFilter, clientFilter]);
 
-  // Calculate totals
-  const totalPaid = (appointments as Appointment[]).filter(apt => apt.paymentStatus === "paid").reduce((sum, apt) => sum + apt.value, 0);
-  const totalPending = (appointments as Appointment[]).filter(apt => apt.paymentStatus === "pending").reduce((sum, apt) => sum + apt.value, 0);
-  const totalOverdue = (appointments as Appointment[]).filter(apt => apt.paymentStatus === "overdue").reduce((sum, apt) => sum + apt.value, 0);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Get unique clients and payment methods for filters
-  const uniqueClients = Array.from(new Set((appointments as Appointment[]).map(apt => apt.clientName)));
-  const uniquePaymentMethods = Array.from(new Set((appointments as Appointment[]).map(apt => apt.paymentMethod)));
+  const handleAppointmentClick = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setIsDialogOpen(true);
+  };
 
-  const getPaymentStatusBadge = (status: string) => {
-    switch (status) {
-      case "paid":
-        return (
-          <Badge variant="default" className="bg-success text-success-foreground gap-1">
-            <CheckCircle2 className="w-3 h-3" />
-            Pago
-          </Badge>
-        );
-      case "pending":
-        return (
-          <Badge variant="secondary" className="gap-1">
-            <Clock className="w-3 h-3" />
-            Pendente
-          </Badge>
-        );
-      case "overdue":
-        return (
-          <Badge variant="destructive" className="gap-1">
-            <AlertCircle className="w-3 h-3" />
-            Atrasado
-          </Badge>
-        );
-      default:
-        return null;
+  const handleSaveAppointment = (updatedAppointment: Appointment) => {
+    try {
+      editAppointment(updatedAppointment.id, updatedAppointment);
+      toast.success("Compromisso atualizado com sucesso!");
+    } catch (err) {
+      toast.success("Error ao atualizar o compromisso.");
     }
   };
+
+  const handleDialogChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setSelectedAppointment(null);
+    }
+  };
+
+  // Calculate totals
+  const totalPaid = (ap).filter(apt => apt.paymentStatus === "paid").reduce((sum, apt) => sum + Number(apt.value), 0);
+  const totalPending = (ap).filter(apt => apt.paymentStatus === "pending").reduce((sum, apt) => sum + Number(apt.value), 0);
+  const totalOverdue = (ap).filter(apt => apt.paymentStatus === "late").reduce((sum, apt) => sum + Number(apt.value), 0);
+
+  const uniqueClients = Array.from(new Set((ap).map(apt => apt.client.name)));
 
   // Upcoming sessions for calendar view
   const upcomingSessions = useMemo(() => {
     const today = startOfToday();
-    return (appointments as Appointment[])
+    return (ap)
       .filter(apt => !isBefore(parseISO(apt.date), today))
       .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
       .slice(0, 5);
-  }, [appointments]);
+  }, [ap]);
 
+  if(appointmentLoading) return;
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
       <Navigation />
@@ -240,18 +242,6 @@ const FinancialRecordsPage = () => {
                   </SelectContent>
                 </Select>
 
-                <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Método" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos Métodos</SelectItem>
-                    {uniquePaymentMethods.map(method => (
-                      <SelectItem key={method} value={method}>{method}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
                 <Select value={clientFilter} onValueChange={setClientFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Cliente" />
@@ -273,8 +263,7 @@ const FinancialRecordsPage = () => {
                       <TableHead>Cliente</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Valor</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Método</TableHead>
+                      <TableHead>Status de pagamento</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -288,13 +277,12 @@ const FinancialRecordsPage = () => {
                     ) : (
                       filteredAppointments.map((appointment) => (
                         <TableRow key={appointment.id}>
-                          <TableCell className="font-medium">{appointment.clientName}</TableCell>
+                          <TableCell className="font-medium">{appointment.client.name}</TableCell>
                           <TableCell>
                             {format(parseISO(appointment.date), "dd/MM/yyyy", { locale: ptBR })}
                           </TableCell>
                           <TableCell>{formatCurrency(appointment.value)}</TableCell>
-                          <TableCell>{getPaymentStatusBadge(appointment.paymentStatus)}</TableCell>
-                          <TableCell>{appointment.paymentMethod}</TableCell>
+                          <TableCell>{getPaymentStatusBadge[appointment.paymentStatus]}</TableCell>
                           <TableCell>
                             <div className="flex justify-end gap-1">
                               {appointment.paymentStatus !== "paid" && (
@@ -312,7 +300,7 @@ const FinancialRecordsPage = () => {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => handleEdit(appointment.id)}
+                                onClick={() => handleAppointmentClick(appointment)}
                                 title="Editar"
                               >
                                 <Edit className="h-4 w-4" />
@@ -361,11 +349,11 @@ const FinancialRecordsPage = () => {
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{session.clientName}</p>
-                      <p className="text-xs text-muted-foreground">{session.time} - {session.service}</p>
+                      <p className="font-semibold text-sm truncate">{session.client.name}</p>
+                      <p className="text-xs text-muted-foreground">{session.time}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-sm font-medium">{formatCurrency(session.value)}</span>
-                        {getPaymentStatusBadge(session.paymentStatus)}
+                        {getPaymentStatusBadge[session.paymentStatus]}
                       </div>
                     </div>
                   </div>
@@ -377,6 +365,12 @@ const FinancialRecordsPage = () => {
                 )}
               </div>
             </CardContent>
+            <AppointmentEditDialog
+              appointment={selectedAppointment}
+              open={isDialogOpen}
+              onOpenChange={handleDialogChange}
+              onSave={handleSaveAppointment}
+            />
           </Card>
         </div>
       </main>

@@ -1,8 +1,8 @@
 // context/authContext.tsx
 import { createContext, useContext } from "react";
-import { useAuth } from "../hooks/use-auth";
+import { useAuth } from "../hooks/useAuth";
 import { User as FirebaseUser } from "firebase/auth";
-import { useUser } from "../hooks/use-user";
+import { useUser } from "../hooks/useUser";
 
 interface AuthContextType {
   firebaseUser: FirebaseUser | null;

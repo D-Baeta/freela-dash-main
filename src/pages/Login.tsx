@@ -4,8 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Eye, EyeOff } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
+import { toast } from "@/hooks/useToast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Login = () => {
   const { login, register } = useAuth();

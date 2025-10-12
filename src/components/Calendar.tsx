@@ -7,7 +7,7 @@ import { AppointmentEditDialog } from "./AppointmentEditDialog";
 import { toast } from "sonner";
 import { Appointment , appointmentStatusColors } from "@/types/models";
 import { parseISO } from "date-fns";
-import { useAppointments } from "../hooks/use-appointments";
+import { useAppointments } from "../hooks/useAppointments";
 import { useAuthContext } from "../contexts/AuthContext";
 
 interface CalendarProps {

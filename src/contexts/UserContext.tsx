@@ -1,7 +1,7 @@
 // context/userContext.tsx
 import { createContext, useContext, ReactNode } from "react";
 import { useAuthContext } from "./AuthContext";
-import { useUser } from "../hooks/use-user";
+import { useUser } from "../hooks/useUser";
 import { User } from "../types/models";
 
 interface UserContextType {

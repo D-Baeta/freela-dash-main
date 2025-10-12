@@ -1,7 +1,7 @@
 import { Navigation } from "@/components/Navigation";
 import { Calendar as CalendarComponent } from "@/components/Calendar";
 import { useAuthContext } from "../contexts/AuthContext";
-import { useAppointments } from "../hooks/use-appointments";
+import { useAppointments } from "../hooks/useAppointments";
 
 
 const CalendarPage = () => {

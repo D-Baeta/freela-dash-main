@@ -1,3 +1,6 @@
+import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
 export type PlanType = "free" | "premium";
 export type AppointmentStatus = "scheduled" | "done" | "canceled" | "noShow";
 export type PaymentStatus = "paid" | "pending" | "late";
@@ -75,4 +78,25 @@ export const paymentMethodLabels: Record<PaymentMethod, string> = {
   pix: "Pix",
   card: "Cartão",
   cash: "Dinheiro",
+};
+
+export const getPaymentStatusBadge: Record<PaymentStatus, React.ReactNode> = {
+  paid: (
+    <Badge variant="default" className="bg-success text-success-foreground gap-1">
+      <CheckCircle2 className="w-3 h-3" />
+      Pago
+    </Badge>
+  ),
+  pending: (
+    <Badge variant="secondary" className="gap-1">
+      <Clock className="w-3 h-3" />
+      Pendente
+    </Badge>
+  ),
+  late: (
+    <Badge variant="destructive" className="gap-1">
+      <AlertCircle className="w-3 h-3" />
+      Atrasado
+    </Badge>
+  ),
 };

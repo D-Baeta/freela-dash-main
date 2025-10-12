@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAppointments } from "../hooks/use-appointments";
+import { useAppointments } from "../hooks/useAppointments";
 import { useAuthContext } from "../contexts/AuthContext";
-import { useClients } from "../hooks/use-clients";
+import { useClients } from "../hooks/useClients";
 
 interface AppointmentModalProps {
   open: boolean;
@@ -23,6 +23,7 @@ export const AppointmentModal = ({ open, onOpenChange }: AppointmentModalProps) 
     date: new Date().toISOString().split('T')[0],
     time: "",
     value: 0,
+    duration: 0,
     status: "scheduled" as "scheduled" | "done" | "canceled",
     paymentStatus: "pending" as "paid" | "pending" | "late"
   });
@@ -37,6 +38,7 @@ export const AppointmentModal = ({ open, onOpenChange }: AppointmentModalProps) 
       date: formData.date,
       time: formData.time,
       value: formData.value,
+      duration: formData.duration,
       status: formData.status,
       paymentStatus: formData.paymentStatus
     })
@@ -48,6 +50,7 @@ export const AppointmentModal = ({ open, onOpenChange }: AppointmentModalProps) 
       date: new Date().toISOString().split('T')[0],
       time: "",
       value: 0,
+      duration: 0,
       status: "scheduled",
       paymentStatus: "pending"
     });
@@ -100,7 +103,17 @@ export const AppointmentModal = ({ open, onOpenChange }: AppointmentModalProps) 
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="value">Valor</Label>
+              <Label htmlFor="time">Duração (min)</Label>
+              <Input
+                id="duration"
+                type="number"
+                value={formData.duration}
+                onChange={(e) => setFormData({ ...formData, duration: Number(e.target.value) })}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="value">Valor (R$)</Label>
               <Input
                 id="value"
                 type="number"
