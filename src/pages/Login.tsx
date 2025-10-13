@@ -224,7 +224,7 @@ const Login = () => {
                 </div>
               </div>
             )}
-            <div className="d-flex flex-column gap-2">
+            <div className="flex flex-column gap-2">
               <Button 
                 type="submit" 
                 className="w-full h-12 text-base shadow-glow hover:shadow-lg transition-smooth"
