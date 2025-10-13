@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, User, MapPin, ClipboardList, Plus } from "lucide-react";
+import { Calendar, CheckCircle2, Clock, User, MapPin, Edit, X, ClipboardList, Plus } from "lucide-react";
 import { ClientModal } from "@/components/ClientModal";
 import { AppointmentModal } from "@/components/AppointmentCreateModal";
 import { format, parseISO, isToday, isFuture, isPast } from "date-fns";
@@ -11,28 +11,29 @@ import { ptBR } from "date-fns/locale";
 import { useUserContext } from "../contexts/UserContext";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useAppointments } from "../hooks/useAppointments";
-import { appointmentStatusLabels, appointmentStatusColors } from "../types/models"
+import { Appointment, appointmentStatusLabels, appointmentStatusColors } from "../types/models"
+import { ActionIconButton } from "@/components/ActionIconButtons";
+import { usePayment } from "@/hooks/usePayment";
+import { AppointmentEditDialog } from "@/components/AppointmentEditDialog";
+import { toast } from "sonner";
 
 
 const Home = () => {
   const { user } = useUserContext();
   const { firebaseUser } = useAuthContext();
-  const { appointments, loading: appointmentLoading } = useAppointments(firebaseUser?.uid);
+  const { appointments, loading: appointmentLoading, editAppointment } = useAppointments(firebaseUser?.uid);
+  const { createPayment } = usePayment(firebaseUser?.uid);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   
-  if(!user) return;
-  if(appointmentLoading) return;
-
-  // const { appointments } = dummyData;
-
   const now = new Date();
+  console.log(appointments)
   const nextAppointment = appointments
   .map(apt => ({
     ...apt,
     dateTime: parseISO(`${apt.date}T${apt.time}`)
   }))
-  .filter(apt => isFuture(apt.dateTime))
+  .filter(apt => isFuture(apt.dateTime) && apt.status == 'scheduled')
   .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())[0];
   
   // Get today's appointments
@@ -43,7 +44,45 @@ const Home = () => {
   }))
   .filter(apt => isToday(apt.dateTime))
   .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+
+
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleAppointmentClick = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setIsDialogOpen(true);
+  };
+
+  const handleMarkAsShowup = async (appointmentId: string) => {
+    try {
+      await editAppointment(appointmentId, { status: "done" });
+      const uniqueAp = appointments.find(a => a.id == appointmentId)
+
+    } catch (err) {
+      console.error("Erro ao marcar como pago:", err);
+    }
+  };
+
+  const handleSaveAppointment = (updatedAppointment: Appointment) => {
+    try {
+      editAppointment(updatedAppointment.id, updatedAppointment);
+      toast.success("Compromisso atualizado com sucesso!");
+    } catch (err) {
+      toast.success("Error ao atualizar o compromisso.");
+    }
+  };
+
+  const handleDialogChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setSelectedAppointment(null);
+    }
+  };
   
+  
+  if(!user) return;
+  if(appointmentLoading) return;
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
@@ -90,11 +129,43 @@ const Home = () => {
                             <Clock className="w-4 h-4 text-muted-foreground" />
                             <span className="font-medium">{nextAppointment.time}</span>
                           </div>
+                          <div className="flex flex-end gap-1">
+                            {nextAppointment.paymentStatus !== "paid" && (
+                              <ActionIconButton
+                                icon={<CheckCircle2 className="h-4 w-4" />}
+                                title="Marcar como pago"
+                                onClick={() => handleMarkAsShowup(nextAppointment.id)}
+                              />
+                            )}
+
+                            <ActionIconButton
+                              icon={<Edit className="h-4 w-4" />}
+                              title="Editar"
+                              onClick={() => handleAppointmentClick(nextAppointment)}
+                            />
+                          </div>
                         </div>
                       </div>
-                      <Badge className={appointmentStatusColors[nextAppointment.status]}>
-                        {appointmentStatusLabels[nextAppointment.status]}
-                      </Badge>
+                      <div className="space-y-3">
+                        <Badge className={appointmentStatusColors[nextAppointment.status]}>
+                          {appointmentStatusLabels[nextAppointment.status]}
+                        </Badge>
+                        <div className="flex flex-end gap-1">
+                          {nextAppointment.paymentStatus !== "paid" && (
+                            <ActionIconButton
+                              icon={<CheckCircle2 className="h-4 w-4" />}
+                              title="Marcar como pago"
+                              onClick={() => handleMarkAsShowup(nextAppointment.id)}
+                            />
+                          )}
+
+                          <ActionIconButton
+                            icon={<Edit className="h-4 w-4" />}
+                            title="Editar"
+                            onClick={() => handleAppointmentClick(nextAppointment)}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -130,6 +201,21 @@ const Home = () => {
                           <Badge className={appointmentStatusColors[apt.status]}>
                             {appointmentStatusLabels[apt.status]}
                           </Badge>
+                        </div>
+                        <div className="flex justify-end gap-1">
+                          {apt.paymentStatus !== "paid" && (
+                            <ActionIconButton
+                              icon={<CheckCircle2 className="h-4 w-4" />}
+                              title="Marcar como pago"
+                              onClick={() => handleMarkAsShowup(apt.id)}
+                            />
+                          )}
+
+                          <ActionIconButton
+                            icon={<Edit className="h-4 w-4" />}
+                            title="Editar"
+                            onClick={() => handleAppointmentClick(apt)}
+                          />
                         </div>
                       </div>
                     ))}
@@ -171,6 +257,12 @@ const Home = () => {
       </main>
       <ClientModal open={isClientModalOpen} onOpenChange={setIsClientModalOpen} />
       <AppointmentModal open={isAppointmentModalOpen} onOpenChange={setIsAppointmentModalOpen} />
+      <AppointmentEditDialog
+        appointment={selectedAppointment}
+        open={isDialogOpen}
+        onOpenChange={handleDialogChange}
+        onSave={handleSaveAppointment}
+      />
     </div>
   );
 };

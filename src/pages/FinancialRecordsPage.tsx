@@ -12,6 +12,7 @@ import { useAuthContext } from "../contexts/AuthContext";
 import { useAppointments } from "@/hooks/useAppointments";
 import { usePayment } from "@/hooks/usePayment";
 import { AppointmentEditDialog } from "../components/AppointmentEditDialog";
+import { ActionIconButton } from "../components/ActionIconButtons";
 import { toast } from "sonner";
 
 const FinancialRecordsPage = () => {
@@ -48,11 +49,6 @@ const FinancialRecordsPage = () => {
     } catch (err) {
       console.error("Erro ao marcar como pago:", err);
     }
-  };
-
-  const handleEdit = (appointmentId: string) => {
-    console.log(`Editing appointment ${appointmentId}`);
-    // TODO: Implement edit logic
   };
 
   const handleCancel = async (appointmentId: string) => {
@@ -285,34 +281,25 @@ const FinancialRecordsPage = () => {
                           <TableCell>
                             <div className="flex justify-end gap-1">
                               {appointment.paymentStatus !== "paid" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleMarkAsPaid(appointment.id)}
+                                <ActionIconButton
+                                  icon={<CheckCircle2 className="h-4 w-4" />}
                                   title="Marcar como pago"
-                                >
-                                  <CheckCircle2 className="h-4 w-4" />
-                                </Button>
+                                  onClick={() => handleMarkAsPaid(appointment.id)}
+                                />
                               )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleAppointmentClick(appointment)}
+
+                              <ActionIconButton
+                                icon={<Edit className="h-4 w-4" />}
                                 title="Editar"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => handleCancel(appointment.id)}
+                                onClick={() => handleAppointmentClick(appointment)}
+                              />
+
+                              <ActionIconButton
+                                icon={<X className="h-4 w-4" />}
                                 title="Cancelar"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
+                                className="text-destructive"
+                                onClick={() => handleCancel(appointment.id)}
+                              />
                             </div>
                           </TableCell>
                         </TableRow>

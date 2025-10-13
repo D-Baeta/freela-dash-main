@@ -48,7 +48,7 @@ export const AppointmentEditDialog = ({
         ...editedAppointment,
         date: format(selectedDate, "yyyy-MM-dd")
       };
-      onSave(updated);
+      onSave({...updated, status: "scheduled"});
       onOpenChange(false);
     }
   };
