@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Calendar, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
+import { PreRegistrationModal } from "@/components/PreRegistrationModal";
 
 const Login = () => {
   const { login, register } = useAuth();
@@ -18,11 +19,16 @@ const Login = () => {
   const [profession, setProfession] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const validatePassword = (pwd: string) => {
     const hasMinLength = pwd.length >= 6;
     const hasLetter = /[a-zA-Z]/.test(pwd);
     return hasMinLength && hasLetter;
+  };
+
+  const handleDialogChange = (open: boolean) => {
+    setIsDialogOpen(open);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,7 +103,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex align-items-center">
       {/* Left side - Login Form */}
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md animate-fade-in">
@@ -218,15 +224,24 @@ const Login = () => {
                 </div>
               </div>
             )}
-            <Button 
-              type="submit" 
-              className="w-full h-12 text-base shadow-glow hover:shadow-lg transition-smooth"
-            >
-              {isRegister ? "Criar conta" : "Entrar"}
-            </Button>
+            <div className="d-flex flex-column gap-2">
+              <Button 
+                type="submit" 
+                className="w-full h-12 text-base shadow-glow hover:shadow-lg transition-smooth"
+              >
+                {isRegister ? "Criar conta" : "Entrar"}
+              </Button>
+              <Button
+                  type="button"
+                  onClick={() => setIsDialogOpen(true)}
+                  className="w-full h-12 text-base shadow-glow hover:shadow-lg transition-smooth"
+                >
+                  {"Cadastre-se"}
+              </Button>
+            </div>
           </form>
 
-          {/* Toggle Register/Login */}
+          {/* Toggle Register/Login
           <div className="mt-6 text-center">
             <button
               type="button"
@@ -238,7 +253,7 @@ const Login = () => {
                 : "Cadastre-se"
               }
             </button>
-          </div>
+          </div> */}
 
           {/* Back to Landing */}
           <div className="mt-6 text-center">
@@ -258,7 +273,7 @@ const Login = () => {
           <h2 className="text-4xl font-bold mb-6">
             Organize seu negócio de forma profissional
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-8">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0 mt-1">
                 <Calendar className="w-5 h-5" />
@@ -266,7 +281,7 @@ const Login = () => {
               <div>
                 <h3 className="font-semibold mb-1">Agenda Inteligente</h3>
                 <p className="text-primary-foreground/80">
-                  Visualize todos os seus compromissos em um só lugar
+                  Visualize todos os seus compromissos
                 </p>
               </div>
             </div>
@@ -299,6 +314,10 @@ const Login = () => {
           </div>
         </div>
       </div>
+      <PreRegistrationModal
+        open={isDialogOpen}
+        onOpenChange={handleDialogChange}
+      />
     </div>
   );
 };

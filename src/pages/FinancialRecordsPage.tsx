@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle2, Clock, AlertCircle, Edit, X, Calendar as CalendarIcon } from "lucide-react";
 import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval, isBefore, startOfToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import dummyData from "@/data/dummyData.json";
 import { Appointment, getPaymentStatusBadge } from "@/types/models";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useAppointments } from "@/hooks/useAppointments";
