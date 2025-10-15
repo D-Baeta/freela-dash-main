@@ -15,7 +15,7 @@ export const Navigation = () => {
     { path: "/home", icon: Home, label: "Início" },
     { path: "/calendar", icon: Calendar, label: "Agenda" },
     { path: "/financial-records", icon: DollarSign, label: "Financeiro" },
-    { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/dashboard", icon: LayoutDashboard, label: "Relatórios" },
   ];
 
   return (

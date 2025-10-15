@@ -34,14 +34,14 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8 animate-fade-in">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            Dashboard
+            Em breve
           </h1>
           <p className="text-muted-foreground">
-            Aqui está um resumo do seu mês
+            Esta página será focada em tendências, desempenho financeiro e controle de comparecimento (mensal, trimestral, anual).
           </p>
         </div>
 
-        {/* Monthly Summary Cards */}
+        {/* Monthly Summary Cards
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-border hover:shadow-lg transition-smooth animate-slide-up">
             <CardHeader className="pb-3">
@@ -64,7 +64,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border hover:shadow-lg transition-smooth animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <Card className="border-border hover:shadow-lg transition-smooth animate-slide-up">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -85,7 +85,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border hover:shadow-lg transition-smooth animate-slide-up" style={{ animationDelay: '0.2s' }}>
+          <Card className="border-border hover:shadow-lg transition-smooth animate-slide-up">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -106,7 +106,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border hover:shadow-lg transition-smooth animate-slide-up" style={{ animationDelay: '0.3s' }}>
+          <Card className="border-border hover:shadow-lg transition-smooth animate-slide-up">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -128,8 +128,8 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Annual Income Chart */}
-        <Card className="border-border animate-slide-up" style={{ animationDelay: '0.4s' }}>
+        {/* Annual Income Chart *
+        <Card className="border-border animate-slide-up">
           <CardHeader>
             <CardTitle>Receita Anual</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
@@ -167,7 +167,8 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
-        </Card>
+        </Card> */}
+
       </main>
     </div>
   );

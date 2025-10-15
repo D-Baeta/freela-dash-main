@@ -42,7 +42,7 @@ export const AppointmentModal = ({ open, onOpenChange }: AppointmentModalProps) 
       status: formData.status,
       paymentStatus: formData.paymentStatus
     })
-    console.log("Appointment data:", formData);
+
     onOpenChange(false);
     // Reset form
     setFormData({

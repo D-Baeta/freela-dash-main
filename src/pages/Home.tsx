@@ -13,7 +13,6 @@ import { useAuthContext } from "../contexts/AuthContext";
 import { useAppointments } from "../hooks/useAppointments";
 import { Appointment, appointmentStatusLabels, appointmentStatusColors } from "../types/models"
 import { ActionIconButton } from "@/components/ActionIconButtons";
-import { usePayment } from "@/hooks/usePayment";
 import { AppointmentEditDialog } from "@/components/AppointmentEditDialog";
 import { toast } from "sonner";
 
@@ -22,12 +21,10 @@ const Home = () => {
   const { user } = useUserContext();
   const { firebaseUser } = useAuthContext();
   const { appointments, loading: appointmentLoading, editAppointment } = useAppointments(firebaseUser?.uid);
-  const { createPayment } = usePayment(firebaseUser?.uid);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   
   const now = new Date();
-  console.log(appointments)
   const nextAppointment = appointments
   .map(apt => ({
     ...apt,
@@ -60,7 +57,7 @@ const Home = () => {
       const uniqueAp = appointments.find(a => a.id == appointmentId)
 
     } catch (err) {
-      console.error("Erro ao marcar como pago:", err);
+      console.error("Erro ao marcar como concluido:", err);
     }
   };
 
@@ -129,21 +126,6 @@ const Home = () => {
                             <Clock className="w-4 h-4 text-muted-foreground" />
                             <span className="font-medium">{nextAppointment.time}</span>
                           </div>
-                          <div className="flex flex-end gap-1">
-                            {nextAppointment.paymentStatus !== "paid" && (
-                              <ActionIconButton
-                                icon={<CheckCircle2 className="h-4 w-4" />}
-                                title="Marcar como pago"
-                                onClick={() => handleMarkAsShowup(nextAppointment.id)}
-                              />
-                            )}
-
-                            <ActionIconButton
-                              icon={<Edit className="h-4 w-4" />}
-                              title="Editar"
-                              onClick={() => handleAppointmentClick(nextAppointment)}
-                            />
-                          </div>
                         </div>
                       </div>
                       <div className="space-y-3">
@@ -151,10 +133,10 @@ const Home = () => {
                           {appointmentStatusLabels[nextAppointment.status]}
                         </Badge>
                         <div className="flex flex-end gap-1">
-                          {nextAppointment.paymentStatus !== "paid" && (
+                          {nextAppointment.status !== "done" && (
                             <ActionIconButton
                               icon={<CheckCircle2 className="h-4 w-4" />}
-                              title="Marcar como pago"
+                              title="Marcar como concluído"
                               onClick={() => handleMarkAsShowup(nextAppointment.id)}
                             />
                           )}
@@ -173,7 +155,7 @@ const Home = () => {
             )}
 
             {/* Today's Appointments */}
-            <Card className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <Card className="animate-slide-up">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-primary" />
@@ -186,31 +168,56 @@ const Home = () => {
                     {todaysAppointments.map((apt) => (
                       <div
                         key={apt.id}
-                        className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-secondary/50 transition-smooth"
+                        className="
+                          grid 
+                          grid-cols-1 gap-2
+                          md:grid-cols-[4fr_2fr_1fr] md:items-center
+                          p-4 rounded-lg border border-border hover:bg-secondary/50 transition-smooth
+                        "
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
-                            <Clock className="w-5 h-5 text-primary" />
+                        {/* Linha superior (nome + botões no mobile, nome apenas no desktop) */}
+                        <div className="flex items-center justify-between md:justify-start md:gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 shrink-0">
+                              <Clock className="w-5 h-5 text-primary" />
+                            </div>
+                            <p className="font-semibold truncate">{apt.client.name.split(" ")[0]}</p>
                           </div>
-                          <div>
-                            <p className="font-semibold">{apt.client.name}</p>
+
+                          {/* Botões aparecem aqui no mobile */}
+                          <div className="flex gap-1 md:hidden">
+                            {apt.status !== "done" && (
+                              <ActionIconButton
+                                icon={<CheckCircle2 className="h-4 w-4" />}
+                                title="Marcar como concluído"
+                                onClick={() => handleMarkAsShowup(apt.id)}
+                              />
+                            )}
+                            <ActionIconButton
+                              icon={<Edit className="h-4 w-4" />}
+                              title="Editar"
+                              onClick={() => handleAppointmentClick(apt)}
+                            />
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
+
+                        {/* Linha inferior (hora + status no mobile, centro no desktop) */}
+                        <div className="flex items-center justify-center gap-4 md:justify-start">
                           <span className="font-medium">{apt.time}</span>
                           <Badge className={appointmentStatusColors[apt.status]}>
                             {appointmentStatusLabels[apt.status]}
                           </Badge>
                         </div>
-                        <div className="flex justify-end gap-1">
-                          {apt.paymentStatus !== "paid" && (
+
+                        {/* Coluna direita (botões no desktop) */}
+                        <div className="hidden md:flex justify-end gap-1">
+                          {apt.status !== "done" && (
                             <ActionIconButton
                               icon={<CheckCircle2 className="h-4 w-4" />}
-                              title="Marcar como pago"
+                              title="Marcar como concluído"
                               onClick={() => handleMarkAsShowup(apt.id)}
                             />
                           )}
-
                           <ActionIconButton
                             icon={<Edit className="h-4 w-4" />}
                             title="Editar"
@@ -229,8 +236,8 @@ const Home = () => {
               </CardContent>
             </Card>
           </div>
-          <div className="border-border animate-slide-up" style={{ animationDelay: '0.4s' }}>
-            <Card className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div >
+            <Card className="animate-slide-up">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-primary" />

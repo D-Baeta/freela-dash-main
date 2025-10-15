@@ -171,10 +171,10 @@ const FinancialRecordsPage = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border hover:shadow-lg transition-smooth animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <Card className="border-border hover:shadow-lg transition-smooth animate-slide-up">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pendente
+                Sessões Futuras
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -187,10 +187,10 @@ const FinancialRecordsPage = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border hover:shadow-lg transition-smooth animate-slide-up" style={{ animationDelay: '0.2s' }}>
+          <Card className="border-border hover:shadow-lg transition-smooth animate-slide-up">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Atrasado
+                Sessões Passadas
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -206,7 +206,7 @@ const FinancialRecordsPage = () => {
 
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
           {/* Sessions Table */}
-          <Card className="border-border animate-slide-up lg:col-span-2" style={{ animationDelay: '0.3s' }}>
+          <Card className="border-border animate-slide-up lg:col-span-2">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Sessões do Mês</CardTitle>
@@ -312,7 +312,7 @@ const FinancialRecordsPage = () => {
           </Card>
 
           {/* Mini Calendar View */}
-          <Card className="border-border animate-slide-up" style={{ animationDelay: '0.4s' }}>
+          <Card className="border-border animate-slide-up">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5" />

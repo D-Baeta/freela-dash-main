@@ -110,7 +110,7 @@ export const Calendar = ({ appointments }: CalendarProps) => {
   };
 
   return (
-    <Card className="border-border animate-slide-up" style={{ animationDelay: '0.3s' }}>
+    <Card className="border-border animate-slide-up">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

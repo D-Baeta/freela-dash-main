@@ -58,14 +58,14 @@ export const appointmentStatusLabels: Record<AppointmentStatus, string> = {
   scheduled: "Agendado",
   done: "Concluído",
   canceled: "Cancelado",
-  noShow: "Não apareceu"
+  noShow: "Não compareceu"
 };
 
 export const appointmentStatusColors: Record<AppointmentStatus, string> = {
-  scheduled: "bg-green-600 border-l-4 border-l-green-700",
-  done: "bg-blue-600 border-l-4 border-l-blue-700",
-  canceled: "bg-red-500 border-l-4 border-l-red-600",
-  noShow: "bg-orange-500 border-l-4 border-l-orange-600"
+  scheduled: "bg-green-600 border-l-4 border-l-green-700 hover:bg-green-700 cursor-default select-none transition-colors",
+  done: "bg-blue-600 border-l-4 border-l-blue-700 hover:bg-blue-700 cursor-default select-none transition-colors",
+  canceled: "bg-red-500 border-l-4 border-l-red-600 hover:bg-red-600 cursor-default select-none transition-colors",
+  noShow: "bg-orange-500 border-l-4 border-l-orange-600 hover:bg-orange-600 cursor-default select-none transition-colors"
 };
 
 export const paymentStatusLabels: Record<PaymentStatus, string> = {

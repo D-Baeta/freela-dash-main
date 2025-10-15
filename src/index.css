@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -145,3 +146,18 @@ All colors MUST be HSL.
     transition: var(--transition-smooth);
   }
 }
+
+
+/* FullCalendar button overrides */
+.fc { --fc-border-color: hsl(var(--border)); --fc-today-bg-color: hsl(var(--secondary)/0.3); font-family: inherit; }
+.fc .fc-button { @apply bg-primary/80 text-white font-medium rounded-lg shadow-sm transition-colors border-none; }
+.fc .fc-button:hover { @apply bg-primary; }
+.fc .fc-button-primary:disabled { @apply bg-primary; }
+.fc .fc-button-primary:focus { @apply shadow-none; }
+.fc .fc-button-primary:not(:disabled).fc-button-active { @apply bg-primary text-white; }
+.fc .fc-button-primary.fc-button-active:hover { @apply bg-primary; }
+.fc .fc-daygrid-event-harness { @apply text-white }
+.fc-timegrid-event-harness { cursor: pointer;}
+a.fc-event { cursor: pointer;}
+.fc-timeGridWeek-view .fc-day-today {  @apply bg-primary/10; }
+.fc-timeGridWeek-view .fc-timegrid-col.fc-day-today {  @apply bg-primary/10; }

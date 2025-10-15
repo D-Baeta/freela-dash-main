@@ -116,7 +116,7 @@ export const AppointmentEditDialog = ({
               id="client"
               value={editedAppointment.client.name}
               disabled
-              className="bg-secondary/50 border-border text-foreground font-medium"
+              className="bg-secondary/50 font-medium opacity-100 cursor-not-allowed select-none"
             />
           </div>
           <div className="grid gap-2">
@@ -215,18 +215,18 @@ export const AppointmentEditDialog = ({
             </div>
           </div>
         </div>
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <div className="flex gap-2 flex-1">
-            <Button variant="destructive" onClick={handleCancel} className="flex-1">
-              Cancelar
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:justify-center">
+          <div className="flex gap-2">
+            <Button onClick={handleCancel} className="bg-red-500 border-l-4 border-l-red-600 hover:bg-red-600/80">
+              Desmarcar
             </Button>
-            <Button variant="outline" onClick={handleNoShow} className="flex-1">
+            <Button onClick={handleNoShow} className=" bg-orange-500 border-l-4 border-l-orange-600 hover:bg-orange-600/80">
               Não Compareceu
             </Button>
+            <Button onClick={handleSave} className="bg-green-600 border-l-4 border-l-green-700 hover:bg-green-700/80">
+              Reagendar
+            </Button>
           </div>
-          <Button onClick={handleSave} className="w-full sm:w-auto">
-            Salvar Alterações
-          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
