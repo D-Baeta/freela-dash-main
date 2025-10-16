@@ -1,38 +1,61 @@
-import { db } from "./firebase-config";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { BaseService } from "./baseService";
+import { UserSchema } from "../schemas/validationSchemas";
 import { User } from "../types/models";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "./firebase-config";
+import { z } from "zod";
 
-const usersRef = collection(db, "users");
+export class UserService extends BaseService<User> {
+  protected collectionName = "users";
+  protected schema = UserSchema as z.ZodSchema<User>;
 
-export const userService = {
-  async create(userId: string, data: Omit<User, "id" | "createdAt">) {
-    await setDoc(doc(usersRef, userId), { ...data, createdAt: serverTimestamp() });
-  },
-
-  async get(userId: string): Promise<User | null> {
-    const snap = await getDoc(doc(usersRef, userId));
-    return snap.exists() ? ({ id: snap.id, ...snap.data() } as User) : null;
-  },
+  async createUser(userId: string, data: Omit<User, "id" | "createdAt">): Promise<void> {
+    try {
+      const validatedData = this.validateData(data);
+      const userRef = doc(db, this.collectionName, userId);
+      
+      await setDoc(userRef, {
+        ...validatedData,
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      this.handleFirestoreError(error, 'criar usuário');
+    }
+  }
 
   async getAll(): Promise<User[]> {
-    const snap = await getDocs(usersRef);
-    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as User));
-  },
+    try {
+      const users = await this.getAllByUser(""); // Empty userId to get all users
+      return users;
+    } catch (error) {
+      this.handleFirestoreError(error, 'buscar todos os usuários');
+    }
+  }
 
-  async update(userId: string, data: Partial<User>) {
-    await updateDoc(doc(usersRef, userId), data);
-  },
+  async updatePlan(userId: string, plan: User['plan']): Promise<void> {
+    return this.update(userId, { plan });
+  }
 
-  async delete(userId: string) {
-    await deleteDoc(doc(usersRef, userId));
-  },
-};
+  async updateProfile(userId: string, data: Partial<Pick<User, 'name' | 'profession'>>): Promise<void> {
+    return this.update(userId, data);
+  }
+
+  async getUserStats(userId: string): Promise<{
+    totalClients: number;
+    totalAppointments: number;
+    totalRevenue: number;
+    completedAppointments: number;
+  }> {
+    // This would typically involve aggregating data from multiple collections
+    // For now, return basic structure - implement based on your needs
+    return {
+      totalClients: 0,
+      totalAppointments: 0,
+      totalRevenue: 0,
+      completedAppointments: 0,
+    };
+  }
+}
+
+// Export singleton instance
+export const userService = new UserService();

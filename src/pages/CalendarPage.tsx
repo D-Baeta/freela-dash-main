@@ -9,28 +9,35 @@ import interactionPlugin from "@fullcalendar/interaction";
 import ptBrLocale from '@fullcalendar/core/locales/pt-br';
 import { Appointment, appointmentStatusColors } from "@/types/models";
 import { AppointmentEditDialog } from "../components/AppointmentEditDialog";
+import { LoadingWrapper } from "../components/LoadingWrapper";
 import { toast } from "sonner";
 import { EventImpl } from "@fullcalendar/core/internal";
 
 
 const CalendarPage = () => {
   const { firebaseUser } = useAuthContext();
-  const { appointments, loading: appointmentLoading, editAppointment } = useAppointments(firebaseUser?.uid);
+  const { 
+    appointments, 
+    loading: appointmentLoading, 
+    error: appointmentError,
+    editAppointment,
+    refreshAppointments
+  } = useAppointments(firebaseUser?.uid);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
-  const handleAppointmentClick = (event) => {
+  const handleAppointmentClick = (event: EventImpl) => {
     const appointment = event.extendedProps as Appointment;
     setSelectedAppointment(appointment);
     setIsDialogOpen(true);
   };
   
-  const handleSaveAppointment = (updatedAppointment: Appointment) => {
+  const handleSaveAppointment = async (updatedAppointment: Appointment) => {
     try {
-      editAppointment(updatedAppointment.id, updatedAppointment);
+      await editAppointment(updatedAppointment.id!, updatedAppointment);
       toast.success("Compromisso atualizado com sucesso!");
     } catch (err) {
-      toast.success("Error ao atualizar o compromisso.");
+      toast.error("Erro ao atualizar o compromisso.");
     }
   };
   
@@ -40,8 +47,6 @@ const CalendarPage = () => {
       setSelectedAppointment(null);
     }
   };
-  
-  if (appointmentLoading) return null;
   // Transform Firestore appointments into FullCalendar events
   const events = appointments.map((apt) => {
     const start = `${apt.date}T${apt.time}`;
@@ -72,7 +77,14 @@ const CalendarPage = () => {
           </p>
         </div>
 
-        <div className="bg-card shadow-sm rounded-2xl p-4 animate-slide-up">
+        <LoadingWrapper
+          loading={appointmentLoading}
+          error={appointmentError}
+          onRetry={refreshAppointments}
+          loadingMessage="Carregando agenda..."
+          errorTitle="Erro ao carregar agenda"
+          className="bg-card shadow-sm rounded-2xl p-4 animate-slide-up"
+        >
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
@@ -97,7 +109,8 @@ const CalendarPage = () => {
             slotMinTime="08:00:00" 
             slotMaxTime="21:00:00" 
           />
-        </div>
+        </LoadingWrapper>
+
         <AppointmentEditDialog
           appointment={selectedAppointment}
           open={isDialogOpen}

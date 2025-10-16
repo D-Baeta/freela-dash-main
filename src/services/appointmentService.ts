@@ -1,38 +1,55 @@
-import { db } from "./firebase-config";
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  serverTimestamp,
-} from "firebase/firestore";
+import { BaseService } from "./baseService";
+import { AppointmentSchema } from "../schemas/validationSchemas";
 import { Appointment } from "../types/models";
+import { orderBy, query, where } from "firebase/firestore";
+import { z } from "zod";
 
-
-const appointmentsRef = collection(db, "appointments");
-
-export const appointmentService = {
-  async create(data: Omit<Appointment, "id">) {
-    await addDoc(appointmentsRef, { ...data, createdAt: serverTimestamp() });
-  },
+export class AppointmentService extends BaseService<Appointment> {
+  protected collectionName = "appointments";
+  protected schema = AppointmentSchema as z.ZodSchema<Appointment>;
 
   async getAllByUser(userId: string): Promise<Appointment[]> {
-    const q = query(appointmentsRef, where("userId", "==", userId));
-    const snap = await getDocs(q);
-    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Appointment));
-  },
+    return super.getAllByUser(userId, [orderBy("date", "desc")]);
+  }
 
-  async update(appointmentId: string, data: Partial<Appointment>) {
+  async getUpcomingAppointments(userId: string): Promise<Appointment[]> {
+    const today = new Date().toISOString().split('T')[0];
+    return super.getAllByUser(userId, [
+      where("date", ">=", today),
+      orderBy("date", "asc"),
+      orderBy("time", "asc")
+    ]);
+  }
+
+  async getAppointmentsByDateRange(userId: string, startDate: string, endDate: string): Promise<Appointment[]> {
+    return super.getAllByUser(userId, [
+      where("date", ">=", startDate),
+      where("date", "<=", endDate),
+      orderBy("date", "asc"),
+      orderBy("time", "asc")
+    ]);
+  }
+
+  async getAppointmentsByStatus(userId: string, status: Appointment['status']): Promise<Appointment[]> {
+    return super.getAllByUser(userId, [
+      where("status", "==", status),
+      orderBy("date", "desc")
+    ]);
+  }
+
+  async getAppointmentsByPaymentStatus(userId: string, paymentStatus: Appointment['paymentStatus']): Promise<Appointment[]> {
+    return super.getAllByUser(userId, [
+      where("paymentStatus", "==", paymentStatus),
+      orderBy("date", "desc")
+    ]);
+  }
+
+  // Override update to exclude client data from Firestore updates
+  async update(id: string, data: Partial<Appointment>): Promise<void> {
     const { client, ...dataWithoutClient } = data;
-    await updateDoc(doc(appointmentsRef, appointmentId), dataWithoutClient);
-  },
+    return super.update(id, dataWithoutClient);
+  }
+}
 
-  async delete(appointmentId: string) {
-    await deleteDoc(doc(appointmentsRef, appointmentId));
-  },
-};
+// Export singleton instance
+export const appointmentService = new AppointmentService();

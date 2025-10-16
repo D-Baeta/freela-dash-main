@@ -1,118 +1,204 @@
-// src/hooks/use-payment.ts
-
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { paymentService } from "../services/paymentService";
 import { Payment } from "../types/models";
+// Removed useErrorHandler to prevent infinite loops
+import { toast } from "sonner";
 
-/**
- * Hook customizado para gerenciar operações relacionadas a pagamentos.
- * @param userId O ID do usuário logado para filtrar os pagamentos.
- */
-export const usePayment = (userId: string) => {
+interface UsePaymentReturn {
+  payments: Payment[];
+  loading: boolean;
+  error: string | null;
+  fetchPayments: () => Promise<void>;
+  createPayment: (data: Omit<Payment, "id" | "userId">) => Promise<void>;
+  updatePayment: (paymentId: string, data: Partial<Payment>) => Promise<void>;
+  deletePayment: (paymentId: string) => Promise<void>;
+  refreshPayments: () => Promise<void>;
+  getPaymentsByStatus: (status: Payment['status']) => Payment[];
+  getPaymentsByMethod: (method: Payment['method']) => Payment[];
+  getTotalByStatus: (status: Payment['status']) => number;
+  getTotalByMethod: (method: Payment['method']) => number;
+  getMonthlyTotal: (year: number, month: number) => Promise<number>;
+}
+
+export const usePayment = (userId?: string): UsePaymentReturn => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  // Removed useErrorHandler to prevent infinite loops
 
-  // --- Funções de Leitura (CRUD: Read) ---
-
-  /**
-   * Busca todos os pagamentos associados ao userId.
-   */
-  const fetchPayments = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await paymentService.getAllByUser(userId);
-      setPayments(data);
-      return data;
-    } catch (err) {
-      const fetchError = err as Error;
-      setError(fetchError);
-      console.error("Erro ao buscar pagamentos:", fetchError);
-      setPayments([]); // Limpa em caso de erro
-      throw fetchError; // Lança o erro para quem chamar a função poder tratar
-    } finally {
-      setLoading(false);
+  // Fetch payments on mount
+  useEffect(() => {
+    if (userId) {
+      fetchPayments();
     }
   }, [userId]);
 
-  // --- Funções de Escrita (CRUD: Create, Update, Delete) ---
+  // Fetch all payments
+  const fetchPayments = useCallback(async () => {
+    if (!userId) return;
 
-  /**
-   * Cria um novo registro de pagamento.
-   */
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const data = await paymentService.getAllByUser(userId);
+      setPayments(data);
+    } catch (err) {
+      const errorMessage = "Erro ao buscar pagamentos";
+      setError(errorMessage);
+      console.error(err as Error, "fetchPayments");
+      toast.error(errorMessage);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, console.error]);
+
+  // Create payment with optimistic update
   const createPayment = useCallback(
     async (data: Omit<Payment, "id" | "userId">) => {
-      setLoading(true);
-      setError(null);
+      if (!userId) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      const tempId = `temp-${Date.now()}`;
+      const optimisticPayment: Payment = {
+        ...data,
+        id: tempId,
+        userId,
+      };
+
+      // Optimistic update
+      setPayments(prev => [optimisticPayment, ...prev]);
+
       try {
-        // Adiciona o userId automaticamente
-        const newPaymentData = { ...data, userId };
-        await paymentService.create(newPaymentData);
-        // Opcional: Atualizar o estado local chamando fetchPayments()
-        // ou adicionando o item à lista localmente para otimizar (mas aqui, vamos re-buscar)
-        await fetchPayments();
+        const paymentId = await paymentService.create({ ...data, userId });
+        
+        // Replace optimistic update with real data
+        setPayments(prev => 
+          prev.map(payment => 
+            payment.id === tempId 
+              ? { ...payment, id: paymentId }
+              : payment
+          )
+        );
+        
+        toast.success("Pagamento registrado com sucesso!");
       } catch (err) {
-        const createError = err as Error;
-        setError(createError);
-        console.error("Erro ao criar pagamento:", createError);
-        throw createError;
-      } finally {
-        setLoading(false);
+        // Revert optimistic update
+        setPayments(prev => prev.filter(payment => payment.id !== tempId));
+        
+        const errorMessage = "Erro ao registrar pagamento";
+        console.error(err as Error, "createPayment");
+        toast.error(errorMessage);
+        throw err;
       }
     },
-    [userId, fetchPayments]
+    [userId, console.error]
   );
 
-  /**
-   * Atualiza um registro de pagamento existente.
-   */
+  // Update payment with optimistic update
   const updatePayment = useCallback(
     async (paymentId: string, data: Partial<Payment>) => {
-      setLoading(true);
-      setError(null);
+      // Store original data for rollback
+      const originalPayment = payments.find(p => p.id === paymentId);
+      if (!originalPayment) {
+        throw new Error("Pagamento não encontrado");
+      }
+
+      // Optimistic update
+      setPayments(prev =>
+        prev.map(p => (p.id === paymentId ? { ...p, ...data } : p))
+      );
+
       try {
         await paymentService.update(paymentId, data);
-        // Otimização: Atualiza o estado local diretamente
-        setPayments((prev) =>
-          prev.map((p) => (p.id === paymentId ? { ...p, ...data } : p))
-        );
+        toast.success("Pagamento atualizado com sucesso!");
       } catch (err) {
-        const updateError = err as Error;
-        setError(updateError);
-        console.error("Erro ao atualizar pagamento:", updateError);
-        throw updateError;
-      } finally {
-        setLoading(false);
+        // Revert optimistic update
+        setPayments(prev =>
+          prev.map(p => (p.id === paymentId ? originalPayment : p))
+        );
+        
+        const errorMessage = "Erro ao atualizar pagamento";
+        console.error(err as Error, "updatePayment");
+        toast.error(errorMessage);
+        throw err;
       }
     },
-    []
+    [payments, console.error]
   );
 
-  /**
-   * Deleta um registro de pagamento.
-   */
+  // Delete payment with optimistic update
   const deletePayment = useCallback(
     async (paymentId: string) => {
-      setLoading(true);
-      setError(null);
+      // Store original data for rollback
+      const originalPayment = payments.find(p => p.id === paymentId);
+      if (!originalPayment) {
+        throw new Error("Pagamento não encontrado");
+      }
+
+      // Optimistic update
+      setPayments(prev => prev.filter(p => p.id !== paymentId));
+
       try {
         await paymentService.delete(paymentId);
-        // Otimização: Remove do estado local
-        setPayments((prev) => prev.filter((p) => p.id !== paymentId));
+        toast.success("Pagamento removido com sucesso!");
       } catch (err) {
-        const deleteError = err as Error;
-        setError(deleteError);
-        console.error("Erro ao deletar pagamento:", deleteError);
-        throw deleteError;
-      } finally {
-        setLoading(false);
+        // Revert optimistic update
+        setPayments(prev => [...prev, originalPayment]);
+        
+        const errorMessage = "Erro ao remover pagamento";
+        console.error(err as Error, "deletePayment");
+        toast.error(errorMessage);
+        throw err;
       }
     },
-    []
+    [payments, console.error]
   );
 
-  // Retorna um objeto memorizado com todos os estados e funções
+  // Refresh payments manually
+  const refreshPayments = useCallback(async () => {
+    await fetchPayments();
+  }, [fetchPayments]);
+
+  // Get payments by status
+  const getPaymentsByStatus = useCallback((status: Payment['status']) => {
+    return payments.filter(p => p.status === status);
+  }, [payments]);
+
+  // Get payments by method
+  const getPaymentsByMethod = useCallback((method: Payment['method']) => {
+    return payments.filter(p => p.method === method);
+  }, [payments]);
+
+  // Get total by status
+  const getTotalByStatus = useCallback((status: Payment['status']) => {
+    return payments
+      .filter(p => p.status === status)
+      .reduce((total, payment) => total + payment.value, 0);
+  }, [payments]);
+
+  // Get total by method
+  const getTotalByMethod = useCallback((method: Payment['method']) => {
+    return payments
+      .filter(p => p.method === method)
+      .reduce((total, payment) => total + payment.value, 0);
+  }, [payments]);
+
+  // Get monthly total
+  const getMonthlyTotal = useCallback(async (year: number, month: number) => {
+    if (!userId) return 0;
+    
+    try {
+      return await paymentService.getMonthlyTotal(userId, year, month);
+    } catch (err) {
+      console.error(err as Error, "getMonthlyTotal");
+      return 0;
+    }
+  }, [userId, console.error]);
+
+  // Memoize return object to prevent unnecessary re-renders
   return useMemo(
     () => ({
       payments,
@@ -122,7 +208,27 @@ export const usePayment = (userId: string) => {
       createPayment,
       updatePayment,
       deletePayment,
+      refreshPayments,
+      getPaymentsByStatus,
+      getPaymentsByMethod,
+      getTotalByStatus,
+      getTotalByMethod,
+      getMonthlyTotal,
     }),
-    [payments, loading, error, fetchPayments, createPayment, updatePayment, deletePayment]
+    [
+      payments,
+      loading,
+      error,
+      fetchPayments,
+      createPayment,
+      updatePayment,
+      deletePayment,
+      refreshPayments,
+      getPaymentsByStatus,
+      getPaymentsByMethod,
+      getTotalByStatus,
+      getTotalByMethod,
+      getMonthlyTotal,
+    ]
   );
 };

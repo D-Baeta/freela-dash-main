@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, CheckCircle2, Clock, User, MapPin, Edit, X, ClipboardList, Plus } from "lucide-react";
 import { ClientModal } from "@/components/ClientModal";
-import { AppointmentModal } from "@/components/AppointmentCreateModal";
+import { AppointmentCreateModal } from "@/components/AppointmentCreateModal";
 import { format, parseISO, isToday, isFuture, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserContext } from "../contexts/UserContext";
@@ -263,7 +263,7 @@ const Home = () => {
         </div>
       </main>
       <ClientModal open={isClientModalOpen} onOpenChange={setIsClientModalOpen} />
-      <AppointmentModal open={isAppointmentModalOpen} onOpenChange={setIsAppointmentModalOpen} />
+      <AppointmentCreateModal open={isAppointmentModalOpen} onOpenChange={setIsAppointmentModalOpen} />
       <AppointmentEditDialog
         appointment={selectedAppointment}
         open={isDialogOpen}
