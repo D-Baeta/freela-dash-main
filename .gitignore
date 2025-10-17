@@ -23,5 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 
-.env.dev
-.env.prd
+.env.development
+.env.production
