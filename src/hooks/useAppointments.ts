@@ -13,6 +13,7 @@ import {
 import { db } from "../services/firebase-config";
 // Removed useErrorHandler to prevent infinite loops
 import { toast } from "sonner";
+import { isBefore, parseISO } from "date-fns";
 
 interface UseAppointmentsReturn {
   appointments: Appointment[];
@@ -53,6 +54,8 @@ export function useAppointments(userId?: string): UseAppointmentsReturn {
       q,
       async (snapshot) => {
         try {
+          const now = new Date();
+
           const data = await Promise.all(
             snapshot.docs.map(async (d) => {
               const appointment = { id: d.id, ...d.data() } as Appointment;
@@ -68,7 +71,19 @@ export function useAppointments(userId?: string): UseAppointmentsReturn {
                   console.warn(`Failed to fetch client for appointment ${appointment.id}:`, clientError);
                 }
               }
-              
+
+              if (appointment.status === "done" && appointment.paymentStatus === "pending") {
+                const aptDate = parseISO(appointment.date);
+                if (isBefore(aptDate, now)) {
+                  appointment.paymentStatus = "late"; // atualiza localmente
+                  try {
+                    await appointmentService.update(appointment.id!, { paymentStatus: "late" });
+                  } catch (err) {
+                    console.error(`Erro ao atualizar pagamento atrasado do compromisso ${appointment.id}:`, err);
+                  }
+                }
+              }
+                  
               return appointment;
             })
           );

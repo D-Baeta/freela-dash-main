@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, Clock, AlertCircle, Edit, X, Calendar as CalendarIcon } from "lucide-react";
-import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval, isBefore, startOfToday } from "date-fns";
+import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval, isBefore, isAfter, startOfDay, startOfToday, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Appointment, getPaymentStatusBadge } from "@/types/models";
 import { useAuthContext } from "../contexts/AuthContext";
@@ -24,8 +24,6 @@ const FinancialRecordsPage = () => {
   const [weekFilter, setWeekFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
 
-
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -34,7 +32,6 @@ const FinancialRecordsPage = () => {
   };
 
   const handleMarkAsPaid = async (appointmentId: string) => {
-    console.log(`Marking appointment ${appointmentId} as paid`);
     try {
       await editAppointment(appointmentId, { paymentStatus: "paid" });
       
@@ -75,16 +72,15 @@ const FinancialRecordsPage = () => {
     }
   };
 
-  // Filter appointments
   const filteredAppointments = useMemo(() => {
     let filtered = ap;
+    
+    filtered = filtered.filter(apt => apt.status !== "canceled");
 
-    // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter(apt => apt.paymentStatus === statusFilter);
     }
 
-    // Week filter
     if (weekFilter !== "all") {
       const today = startOfToday();
       const weekStart = startOfWeek(today, { locale: ptBR });
@@ -105,14 +101,12 @@ const FinancialRecordsPage = () => {
       }
     }
 
-
-    // Client filter
     if (clientFilter !== "all") {
       filtered = filtered.filter(apt => apt.client.name === clientFilter);
     }
 
     return filtered.sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
-  }, [ap, statusFilter, weekFilter, clientFilter]);
+  }, [ap, statusFilter, weekFilter, clientFilter, editAppointment]);
 
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -138,14 +132,30 @@ const FinancialRecordsPage = () => {
     }
   };
 
-  // Calculate totals
-  const totalPaid = (ap).filter(apt => apt.paymentStatus === "paid").reduce((sum, apt) => sum + Number(apt.value), 0);
-  const totalPending = (ap).filter(apt => apt.paymentStatus === "pending").reduce((sum, apt) => sum + Number(apt.value), 0);
-  const totalOverdue = (ap).filter(apt => apt.paymentStatus === "late").reduce((sum, apt) => sum + Number(apt.value), 0);
+  const today = startOfDay(new Date());
+
+  const totalPaid = ap
+  .filter(apt => apt.paymentStatus === "paid")
+  .reduce((sum, apt) => sum + Number(apt.value), 0);
+
+  const totalPending = ap
+  .filter(apt => 
+    apt.paymentStatus === "pending" && 
+    isAfter(new Date(apt.date), today)
+  )
+  .reduce((sum, apt) => sum + Number(apt.value), 0);
+
+  const totalOverdue = ap
+  .filter(apt =>
+    (apt.paymentStatus === "pending" || apt.paymentStatus === "late") &&
+    isBefore(new Date(apt.date), today) &&
+    apt.status === "done"
+  )
+  .reduce((sum, apt) => sum + Number(apt.value), 0);
+
 
   const uniqueClients = Array.from(new Set((ap).map(apt => apt.client.name)));
 
-  // Upcoming sessions for calendar view
   const upcomingSessions = useMemo(() => {
     const today = startOfToday();
     return (ap)
@@ -303,13 +313,14 @@ const FinancialRecordsPage = () => {
                                   onClick={() => handleMarkAsPaid(appointment.id)}
                                 />
                               )}
-
-                              <ActionIconButton
-                                icon={<X className="h-4 w-4" />}
-                                title="Cancelar"
-                                className="text-destructive"
-                                onClick={() => handleCancel(appointment.id)}
-                              />
+                              {appointment.paymentStatus == "paid" && (
+                                <ActionIconButton
+                                  icon={<X className="h-4 w-4" />}
+                                  title="Cancelar"
+                                  className="text-destructive"
+                                  onClick={() => handleCancel(appointment.id)}
+                                />
+                              )}
                               <ActionIconButton
                                 icon={<Edit className="h-4 w-4" />}
                                 title="Editar"

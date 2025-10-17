@@ -67,6 +67,13 @@ export const AppointmentEditDialog = ({
     }
   };
 
+  const handleConclude = () => {
+    if (editedAppointment) {
+      onSave({ ...editedAppointment, status: "done" });
+      onOpenChange(false);
+    }
+  };
+
   const incrementTime = (minutes: number) => {
     if (!editedAppointment) return;
     
@@ -215,18 +222,19 @@ export const AppointmentEditDialog = ({
             </div>
           </div>
         </div>
-        <DialogFooter className="flex-col sm:flex-row gap-2 sm:justify-center">
-          <div className="flex gap-2">
-            <Button onClick={handleCancel} className="bg-red-500 border-l-4 border-l-red-600 hover:bg-red-600/80">
-              Desmarcar
-            </Button>
-            <Button onClick={handleNoShow} className=" bg-orange-500 border-l-4 border-l-orange-600 hover:bg-orange-600/80">
-              Não Compareceu
-            </Button>
-            <Button onClick={handleSave} className="bg-green-600 border-l-4 border-l-green-700 hover:bg-green-700/80">
-              Reagendar
-            </Button>
-          </div>
+        <DialogFooter className="grid grid-cols-2 gap-2">
+          <Button onClick={handleCancel} className="bg-red-500 border-l-4 border-l-red-600 hover:bg-red-600/80">
+            Desmarcar
+          </Button>
+          <Button onClick={handleNoShow} className="bg-orange-500 border-l-4 border-l-orange-600 hover:bg-orange-600/80">
+            Não Compareceu
+          </Button>
+          <Button onClick={handleSave} className="bg-green-600 border-l-4 border-l-green-700 hover:bg-green-700/80">
+            Reagendar
+          </Button>
+          <Button onClick={handleConclude} className="bg-blue-600 border-l-4 border-l-blue-700 hover:bg-blue-700/80">
+            Marcar como concluído
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

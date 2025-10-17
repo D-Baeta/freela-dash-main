@@ -192,7 +192,6 @@ export const usePayment = (userId?: string): UsePaymentReturn => {
 
     try {
       const result = await paymentService.getPaymentByAppointment(userId, appointmentId);
-      console.log(result)
       return result[0] || null; 
     } catch (err) {
       console.error(err, "getPaymentByAppointment");
