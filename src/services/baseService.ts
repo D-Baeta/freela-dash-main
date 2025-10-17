@@ -17,7 +17,7 @@ import {
   writeBatch
 } from "firebase/firestore";
 import { db } from "./firebase-config";
-import { z } from "zod";
+import { z, ZodTypeAny } from "zod";
 
 export abstract class BaseService<T extends { id?: string }> {
   protected abstract collectionName: string;
@@ -116,19 +116,14 @@ export abstract class BaseService<T extends { id?: string }> {
 
   async update(id: string, data: Partial<T>): Promise<void> {
     try {
-      const validatedData = this.validateData(data);
-      const docRef = doc(this.collection, id);
-      
-      // Remove undefined values and id from update data
-      const updateData = Object.fromEntries(
-        Object.entries(validatedData).filter(([_, value]) => value !== undefined)
-      );
+      const updateData = { ...data }; // don't validate the whole schema
       delete updateData.id;
-      
+
       if (Object.keys(updateData).length === 0) {
         throw new Error('Nenhum dado válido para atualizar');
       }
-      
+
+      const docRef = doc(this.collection, id);
       await updateDoc(docRef, {
         ...updateData,
         updatedAt: serverTimestamp(),

@@ -18,7 +18,7 @@ import { toast } from "sonner";
 const FinancialRecordsPage = () => {
   const { firebaseUser } = useAuthContext();
   const { appointments: ap, loading: appointmentLoading, editAppointment } = useAppointments(firebaseUser?.uid);
-  const { updatePayment, createPayment } = usePayment(firebaseUser?.uid);
+  const { updatePayment, createPayment, getPaymentByAppointment } = usePayment(firebaseUser?.uid);
   
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [weekFilter, setWeekFilter] = useState<string>("all");
@@ -37,15 +37,25 @@ const FinancialRecordsPage = () => {
     console.log(`Marking appointment ${appointmentId} as paid`);
     try {
       await editAppointment(appointmentId, { paymentStatus: "paid" });
-      const uniqueAp = ap.find(a => a.id == appointmentId)
+      
+      const existingPayment = await getPaymentByAppointment(appointmentId);
+      
+      if(existingPayment) {
+        await updatePayment(existingPayment.id, {
+          status: "paid",
+          date: new Date().toISOString().split('T')[0],
+        });
+      } else {
+        const uniqueAp = ap.find(a => a.id == appointmentId)
+        await createPayment({ 
+          appointmentId: appointmentId,
+          value: uniqueAp.value,
+          method: "pix",
+          status: "paid",
+          date: new Date().toLocaleDateString('en-CA')
+        }); 
+      }
 
-      await createPayment({ 
-        appointmentId: appointmentId,
-        value: uniqueAp.value,
-        method: "pix",
-        status: "paid",
-        date: new Date().toISOString().split('T')[0]
-      }); 
     } catch (err) {
       console.error("Erro ao marcar como pago:", err);
     }
@@ -53,7 +63,13 @@ const FinancialRecordsPage = () => {
 
   const handleCancel = async (appointmentId: string) => {
     try {
-      await editAppointment(appointmentId, { status: "canceled", paymentStatus: "pending" });
+      await editAppointment(appointmentId, { paymentStatus: "pending" });
+      const existingPayment = await getPaymentByAppointment(appointmentId);
+      if (existingPayment) {
+        await updatePayment(existingPayment.id, {
+          status: "canceled",
+        });
+      }
     } catch (err) {
       console.error("Erro ao cancelar compromisso:", err);
     }
@@ -289,17 +305,17 @@ const FinancialRecordsPage = () => {
                               )}
 
                               <ActionIconButton
-                                icon={<Edit className="h-4 w-4" />}
-                                title="Editar"
-                                onClick={() => handleAppointmentClick(appointment)}
-                              />
-
-                              <ActionIconButton
                                 icon={<X className="h-4 w-4" />}
                                 title="Cancelar"
                                 className="text-destructive"
                                 onClick={() => handleCancel(appointment.id)}
                               />
+                              <ActionIconButton
+                                icon={<Edit className="h-4 w-4" />}
+                                title="Editar"
+                                onClick={() => handleAppointmentClick(appointment)}
+                              />
+
                             </div>
                           </TableCell>
                         </TableRow>

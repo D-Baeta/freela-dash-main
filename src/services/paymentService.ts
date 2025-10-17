@@ -34,10 +34,9 @@ export class PaymentService extends BaseService<Payment> {
     ]);
   }
 
-  async getPaymentsByAppointment(userId: string, appointmentId: string): Promise<Payment[]> {
+  async getPaymentByAppointment(userId: string, appointmentId: string): Promise<Payment[]> {
     return super.getAllByUser(userId, [
-      where("appointmentId", "==", appointmentId),
-      orderBy("date", "desc")
+      where("appointmentId", "==", appointmentId)
     ]);
   }
 

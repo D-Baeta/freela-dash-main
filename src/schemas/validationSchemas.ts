@@ -3,7 +3,7 @@ import { z } from "zod";
 // Base schemas
 export const PlanTypeSchema = z.enum(["free", "premium"]);
 export const AppointmentStatusSchema = z.enum(["scheduled", "done", "canceled", "noShow"]);
-export const PaymentStatusSchema = z.enum(["paid", "pending", "late"]);
+export const PaymentStatusSchema = z.enum(["paid", "pending", "late", "canceled"]);
 export const PaymentMethodSchema = z.enum(["pix", "card", "cash"]);
 
 // User schema

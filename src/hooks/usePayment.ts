@@ -18,6 +18,7 @@ interface UsePaymentReturn {
   getTotalByStatus: (status: Payment['status']) => number;
   getTotalByMethod: (method: Payment['method']) => number;
   getMonthlyTotal: (year: number, month: number) => Promise<number>;
+  getPaymentByAppointment: (appointmentId: string) => Promise<Payment>
 }
 
 export const usePayment = (userId?: string): UsePaymentReturn => {
@@ -52,7 +53,7 @@ export const usePayment = (userId?: string): UsePaymentReturn => {
     } finally {
       setLoading(false);
     }
-  }, [userId, console.error]);
+  }, [userId]);
 
   // Create payment with optimistic update
   const createPayment = useCallback(
@@ -94,7 +95,7 @@ export const usePayment = (userId?: string): UsePaymentReturn => {
         throw err;
       }
     },
-    [userId, console.error]
+    [userId]
   );
 
   // Update payment with optimistic update
@@ -126,7 +127,7 @@ export const usePayment = (userId?: string): UsePaymentReturn => {
         throw err;
       }
     },
-    [payments, console.error]
+    [payments]
   );
 
   // Delete payment with optimistic update
@@ -154,7 +155,7 @@ export const usePayment = (userId?: string): UsePaymentReturn => {
         throw err;
       }
     },
-    [payments, console.error]
+    [payments]
   );
 
   // Refresh payments manually
@@ -186,6 +187,19 @@ export const usePayment = (userId?: string): UsePaymentReturn => {
       .reduce((total, payment) => total + payment.value, 0);
   }, [payments]);
 
+  const getPaymentByAppointment = useCallback(async (appointmentId: string) => {
+    if (!userId) return null;
+
+    try {
+      const result = await paymentService.getPaymentByAppointment(userId, appointmentId);
+      console.log(result)
+      return result[0] || null; 
+    } catch (err) {
+      console.error(err, "getPaymentByAppointment");
+      return null;
+    }
+  }, [userId]);
+
   // Get monthly total
   const getMonthlyTotal = useCallback(async (year: number, month: number) => {
     if (!userId) return 0;
@@ -196,7 +210,7 @@ export const usePayment = (userId?: string): UsePaymentReturn => {
       console.error(err as Error, "getMonthlyTotal");
       return 0;
     }
-  }, [userId, console.error]);
+  }, [userId]);
 
   // Memoize return object to prevent unnecessary re-renders
   return useMemo(
@@ -214,6 +228,7 @@ export const usePayment = (userId?: string): UsePaymentReturn => {
       getTotalByStatus,
       getTotalByMethod,
       getMonthlyTotal,
+      getPaymentByAppointment,
     }),
     [
       payments,
@@ -229,6 +244,7 @@ export const usePayment = (userId?: string): UsePaymentReturn => {
       getTotalByStatus,
       getTotalByMethod,
       getMonthlyTotal,
+      getPaymentByAppointment,
     ]
   );
 };

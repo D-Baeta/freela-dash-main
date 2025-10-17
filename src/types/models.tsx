@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 
 export type PlanType = "free" | "premium";
 export type AppointmentStatus = "scheduled" | "done" | "canceled" | "noShow";
-export type PaymentStatus = "paid" | "pending" | "late";
+export type PaymentStatus = "paid" | "pending" | "late" | "canceled" ;
 export type PaymentMethod = "pix" | "card" | "cash";
 
 export interface User {
@@ -72,6 +72,7 @@ export const paymentStatusLabels: Record<PaymentStatus, string> = {
   paid: "Pago",
   pending: "Pendente",
   late: "Atrasado",
+  canceled: "Cancelado"
 };
 
 export const paymentMethodLabels: Record<PaymentMethod, string> = {
@@ -99,4 +100,10 @@ export const getPaymentStatusBadge: Record<PaymentStatus, React.ReactNode> = {
       Atrasado
     </Badge>
   ),
+  canceled: (
+    <Badge variant="destructive" className="gap-1">
+      <AlertCircle className="w-3 h-3" />
+      Cancelado
+    </Badge>
+  )
 };
