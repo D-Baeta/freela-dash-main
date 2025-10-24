@@ -9,6 +9,8 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import CalendarPage from "./pages/CalendarPage";
 import FinancialRecordsPage from "./pages/FinancialRecordsPage";
+import ClientsPage from "./pages/Clients";
+import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import { UserProvider } from "./contexts/UserContext";
@@ -28,10 +30,46 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/home" element={<Home />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/calendar" element={<CalendarPage />} />
-                <Route path="/financial-records" element={<FinancialRecordsPage />} />
+                <Route
+                  path="/home"
+                  element={
+                    <ProtectedRoute>
+                      <Home />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/calendar"
+                  element={
+                    <ProtectedRoute>
+                      <CalendarPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financial-records"
+                  element={
+                    <ProtectedRoute>
+                      <FinancialRecordsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/clients"
+                  element={
+                    <ProtectedRoute>
+                      <ClientsPage />
+                    </ProtectedRoute>
+                  }
+                />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

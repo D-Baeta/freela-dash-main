@@ -22,6 +22,17 @@ export interface Client {
   phone: string;
   email: string;
   notes?: string;
+  // Optional recurrence definition attached to the client (simplified): only weekly, biweekly or monthly
+  recurrence?: {
+    active?: boolean;
+    frequency?: "weekly" | "biweekly" | "monthly";
+    // anchor date/time for recurrence (ISO date 'YYYY-MM-DD' and 'HH:MM')
+    anchorDate?: string;
+    anchorTime?: string;
+    // optional defaults for created instances
+    duration?: number;
+    value?: number;
+  };
   createdAt?: Date;
 }
   
@@ -83,7 +94,7 @@ export const paymentMethodLabels: Record<PaymentMethod, string> = {
 
 export const getPaymentStatusBadge: Record<PaymentStatus, React.ReactNode> = {
   paid: (
-    <Badge variant="default" className="bg-success text-success-foreground gap-1">
+    <Badge variant="default" className='bg-green-600 border-l-4 border-l-green-700 hover:bg-green-700 cursor-default select-none transition-colors gap-1'>
       <CheckCircle2 className="w-3 h-3" />
       Pago
     </Badge>
@@ -95,7 +106,7 @@ export const getPaymentStatusBadge: Record<PaymentStatus, React.ReactNode> = {
     </Badge>
   ),
   late: (
-    <Badge variant="destructive" className="gap-1">
+    <Badge variant="default" className="bg-red-500 border-l-4 border-l-red-600 hover:bg-red-600 cursor-default select-none transition-colors gap-1">
       <AlertCircle className="w-3 h-3" />
       Atrasado
     </Badge>

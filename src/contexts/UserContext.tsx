@@ -1,15 +1,8 @@
 // context/userContext.tsx
-import { createContext, useContext, ReactNode } from "react";
-import { useAuthContext } from "./AuthContext";
+import { ReactNode } from "react";
+import { useAuthContext } from "./authContextBase";
 import { useUser } from "../hooks/useUser";
-import { User } from "../types/models";
-
-interface UserContextType {
-  user: User | null;
-  loading: boolean;
-}
-
-const UserContext = createContext<UserContextType>({ user: null, loading: true });
+import { UserContext } from "./userContextBase";
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const { firebaseUser, loading: authLoading } = useAuthContext();
@@ -20,4 +13,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   return <UserContext.Provider value={{ user, loading }}>{children}</UserContext.Provider>;
 };
 
-export const useUserContext = () => useContext(UserContext);
+// Note: the `useUserContext` hook and the `UserContext` value are intentionally
+// exported from `userContextBase.ts` to keep this file exporting only the
+// provider component (prevents react-refresh warnings). Import the hook from
+// `./userContextBase` in other modules.

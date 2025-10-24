@@ -8,8 +8,8 @@ import { ClientModal } from "@/components/ClientModal";
 import { AppointmentCreateModal } from "@/components/AppointmentCreateModal";
 import { format, parseISO, isToday, isFuture, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useUserContext } from "../contexts/UserContext";
-import { useAuthContext } from "../contexts/AuthContext";
+import { useUserContext } from "../contexts/userContextBase";
+import { useAuthContext } from "../contexts/authContextBase";
 import { useAppointments } from "../hooks/useAppointments";
 import { Appointment, appointmentStatusLabels, appointmentStatusColors } from "../types/models"
 import { ActionIconButton } from "@/components/ActionIconButtons";
@@ -236,7 +236,7 @@ const Home = () => {
               </CardContent>
             </Card>
           </div>
-          <div >
+          <div>
             <Card className="animate-slide-up">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

@@ -162,18 +162,23 @@ export function useAppointments(userId?: string): UseAppointmentsReturn {
       if (!originalAppointment) {
         throw new Error("Compromisso não encontrado");
       }
+      // If the status is being set to canceled or noShow, ensure paymentStatus is canceled
+      const updatedData: Partial<Appointment> = { ...data };
+      if (data.status === "canceled" || data.status === "noShow") {
+        updatedData.paymentStatus = "canceled";
+      }
 
-      // Optimistic update
+      // Optimistic update with possibly modified data
       setAppointments(prev => 
         prev.map(apt => 
           apt.id === appointmentId 
-            ? { ...apt, ...data }
+            ? { ...apt, ...updatedData }
             : apt
         )
       );
 
       try {
-        await appointmentService.update(appointmentId, data);
+        await appointmentService.update(appointmentId, updatedData);
         toast.success("Compromisso atualizado com sucesso!");
       } catch (err) {
         // Revert optimistic update

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuthContext } from "../contexts/AuthContext";
+import { useAuthContext } from "../contexts/authContextBase";
 import { useClients } from "../hooks/useClients";
 
 interface ClientModalProps {
@@ -15,11 +15,11 @@ export const ClientModal = ({ open, onOpenChange }: ClientModalProps) => {
   const { firebaseUser } = useAuthContext();
   const { clients, loading, createClient } = useClients(firebaseUser?.uid);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{ name: string; phone: string; email: string; createdAt: string }>({
     name: "",
     phone: "",
     email: "",
-    createdAt: new Date().toISOString().split('T')[0]
+    createdAt: new Date().toISOString().split('T')[0],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -38,7 +38,7 @@ export const ClientModal = ({ open, onOpenChange }: ClientModalProps) => {
       name: "",
       phone: "",
       email: "",
-      createdAt: new Date().toISOString().split('T')[0]
+      createdAt: new Date().toISOString().split('T')[0],
     });
   };
 
@@ -89,12 +89,15 @@ export const ClientModal = ({ open, onOpenChange }: ClientModalProps) => {
                 required
               />
             </div>
+            {/* Recurrence is set when creating an appointment, not when adding a client */}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit">Adicionar</Button>
+            <div className="flex flex-row justify-self-end gap-4">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Adicionar</Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

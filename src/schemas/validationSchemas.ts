@@ -26,6 +26,13 @@ export const ClientSchema = z.object({
   phone: z.string().min(1, "Telefone é obrigatório").regex(/^[\d\s\-()+]+$/, "Telefone inválido"),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   notes: z.string().max(500, "Notas muito longas").optional(),
+  recurrence: z.object({
+    frequency: z.enum(["weekly", "biweekly", "monthly"]),
+    anchorDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    anchorTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    duration: z.number().optional(),
+    value: z.number().optional(),
+  }).optional(),
   createdAt: z.union([z.date(), z.any()]).optional().transform((val) => 
     val instanceof Date ? val : val?.toDate ? val.toDate() : new Date()
   ),

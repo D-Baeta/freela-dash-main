@@ -1,19 +1,23 @@
-import { Calendar, LayoutDashboard, DollarSign, Home } from "lucide-react";
+import { Calendar, LayoutDashboard, DollarSign, Home, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useUserContext } from "../contexts/UserContext";
+import { useUserContext } from "../contexts/userContextBase";
+import { useAuth } from "../hooks/useAuth";
+import { toast } from "@/hooks/useToast";
 
 export const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const { user , loading: userLoading } = useUserContext();
+  const { logout } = useAuth();
   
   if(!user) return;
 
   const navItems = [
     { path: "/home", icon: Home, label: "Início" },
     { path: "/calendar", icon: Calendar, label: "Agenda" },
+    { path: "/clients", icon: Users, label: "Clientes" },
     { path: "/financial-records", icon: DollarSign, label: "Financeiro" },
     { path: "/dashboard", icon: LayoutDashboard, label: "Relatórios" },
   ];
@@ -56,7 +60,14 @@ export const Navigation = () => {
             </div>
             <Button 
               variant="outline" 
-              onClick={() => navigate("/")}
+              onClick={async () => {
+                try {
+                  await logout();
+                  navigate("/login");
+                } catch (err) {
+                  toast({ title: "Erro", description: (err as Error).message, variant: "destructive" });
+                }
+              }}
               className="hover:shadow-md transition-smooth"
             >
               Sair

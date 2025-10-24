@@ -4,16 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, Clock, AlertCircle, Edit, X, Calendar as CalendarIcon } from "lucide-react";
+import { CheckCircle2, Plus, AlertCircle, Edit, X, Calendar as CalendarIcon } from "lucide-react";
 import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval, isBefore, isAfter, startOfDay, startOfToday, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Appointment, getPaymentStatusBadge } from "@/types/models";
-import { useAuthContext } from "../contexts/AuthContext";
+import { useAuthContext } from "../contexts/authContextBase";
 import { useAppointments } from "@/hooks/useAppointments";
 import { usePayment } from "@/hooks/usePayment";
 import { AppointmentEditDialog } from "../components/AppointmentEditDialog";
 import { ActionIconButton } from "../components/ActionIconButtons";
 import { toast } from "sonner";
+import { ClientModal } from "@/components/ClientModal";
+import { AppointmentCreateModal } from "@/components/AppointmentCreateModal";
 
 const FinancialRecordsPage = () => {
   const { firebaseUser } = useAuthContext();
@@ -23,6 +25,18 @@ const FinancialRecordsPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [weekFilter, setWeekFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+
+  const months = Array.from({ length: 12 }).map((_, i) => ({
+    value: i,
+    label: format(new Date(2020, i, 1), 'MMMM', { locale: ptBR })
+  }));
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }).map((_, i) => currentYear - 2 + i);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -90,14 +104,6 @@ const FinancialRecordsPage = () => {
         filtered = filtered.filter(apt => 
           isWithinInterval(parseISO(apt.date), { start: weekStart, end: weekEnd })
         );
-      } else if (weekFilter === "next_week") {
-        const nextWeekStart = new Date(weekStart);
-        nextWeekStart.setDate(nextWeekStart.getDate() + 7);
-        const nextWeekEnd = new Date(weekEnd);
-        nextWeekEnd.setDate(nextWeekEnd.getDate() + 7);
-        filtered = filtered.filter(apt => 
-          isWithinInterval(parseISO(apt.date), { start: nextWeekStart, end: nextWeekEnd })
-        );
       }
     }
 
@@ -105,8 +111,18 @@ const FinancialRecordsPage = () => {
       filtered = filtered.filter(apt => apt.client.name === clientFilter);
     }
 
+    // Filter by selected month and year
+    filtered = filtered.filter(apt => {
+      try {
+        const d = parseISO(apt.date);
+        return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+      } catch (err) {
+        return false;
+      }
+    });
+
     return filtered.sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
-  }, [ap, statusFilter, weekFilter, clientFilter, editAppointment]);
+  }, [ap, statusFilter, weekFilter, clientFilter, selectedMonth, selectedYear]);
 
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -133,22 +149,23 @@ const FinancialRecordsPage = () => {
   };
 
   const today = startOfDay(new Date());
-
-  const totalPaid = ap
+  
+  
+  const totalPaid = filteredAppointments
   .filter(apt => apt.paymentStatus === "paid")
   .reduce((sum, apt) => sum + Number(apt.value), 0);
-
-  const totalPending = ap
+  
+  const totalPending = filteredAppointments
   .filter(apt => 
     apt.paymentStatus === "pending" && 
-    isAfter(new Date(apt.date), today)
+    isAfter(new Date(apt.date + 'T' + apt.time), today)
   )
   .reduce((sum, apt) => sum + Number(apt.value), 0);
 
-  const totalOverdue = ap
+  const totalOverdue = filteredAppointments
   .filter(apt =>
     (apt.paymentStatus === "pending" || apt.paymentStatus === "late") &&
-    isBefore(new Date(apt.date), today) &&
+    isBefore(new Date(apt.date + 'T' + apt.time), today) &&
     apt.status === "done"
   )
   .reduce((sum, apt) => sum + Number(apt.value), 0);
@@ -157,9 +174,9 @@ const FinancialRecordsPage = () => {
   const uniqueClients = Array.from(new Set((ap).map(apt => apt.client.name)));
 
   const upcomingSessions = useMemo(() => {
-    const today = startOfToday();
+    const today = new Date();
     return (ap)
-      .filter(apt => !isBefore(parseISO(apt.date), today))
+      .filter(apt => !isBefore(new Date(apt.date + 'T' + apt.time), today))
       .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
       .slice(0, 5);
   }, [ap]);
@@ -169,15 +186,57 @@ const FinancialRecordsPage = () => {
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
       <Navigation />
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            Controle Financeiro
-          </h1>
-          <p className="text-muted-foreground">
-            Acompanhe pagamentos e status dos clientes
-          </p>
+      <main className="container mx-auto px-4 py-8 ">
+        <div className="mb-8 animate-fade-in flex flex-col gap-6">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold mb-2">
+                  Controle Financeiro Mensal
+                </h1>
+              </div>
+
+          <div className="flex justify-between itens-center gap-4">
+              <div className="flex items-center gap-2">
+                <Select value={String(selectedMonth)} onValueChange={val => setSelectedMonth(Number(val))}>
+                  <SelectTrigger className="h-12 w-40 text-md">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map(m => (
+                      <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={String(selectedYear)} onValueChange={val => setSelectedYear(Number(val))}>
+                  <SelectTrigger className="h-12 w-28 text-md">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map(y => (
+                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <CardContent className="flex flex-row gap-4 p-0">
+                  <Button 
+                  onClick={() => setIsClientModalOpen(true)}
+                  className="text-md h-12 px-4 shadow-glow hover:shadow-lg transition-smooth">
+                    <Plus className="w-4 h-4" />
+                    Adicionar cliente
+                  </Button>
+                  <Button
+                  onClick={() => setIsAppointmentModalOpen(true)}
+                  className="text-md h-12 px-4 shadow-glow hover:shadow-lg transition-smooth">
+                    <Plus className="w-4 h-4" />
+                    Adicionar compromisso
+                  </Button>
+                </CardContent>
+              </div>
+            </div>
         </div>
+        
 
         {/* Financial Summary */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -248,7 +307,7 @@ const FinancialRecordsPage = () => {
                     <SelectItem value="all">Todos Status</SelectItem>
                     <SelectItem value="paid">Pago</SelectItem>
                     <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="overdue">Atrasado</SelectItem>
+                    <SelectItem value="late">Atrasado</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -259,7 +318,6 @@ const FinancialRecordsPage = () => {
                   <SelectContent>
                     <SelectItem value="all">Todas Semanas</SelectItem>
                     <SelectItem value="this_week">Esta Semana</SelectItem>
-                    <SelectItem value="next_week">Próxima Semana</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -378,6 +436,8 @@ const FinancialRecordsPage = () => {
                 )}
               </div>
             </CardContent>
+            <ClientModal open={isClientModalOpen} onOpenChange={setIsClientModalOpen} />
+            <AppointmentCreateModal open={isAppointmentModalOpen} onOpenChange={setIsAppointmentModalOpen} />
             <AppointmentEditDialog
               appointment={selectedAppointment}
               open={isDialogOpen}

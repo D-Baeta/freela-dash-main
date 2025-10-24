@@ -4,6 +4,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   User as FirebaseUser,
+  setPersistence,
+  browserLocalPersistence,
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { User } from "../types/models";
@@ -25,6 +27,9 @@ export interface LoginData {
 export const authService = {
   /** Register a new user and create their Firestore profile */
   async registerUser({ email, password, name, profession }: RegisterData): Promise<FirebaseUser> {
+    // Ensure persistence is set for this auth session
+    await setPersistence(auth, browserLocalPersistence);
+
     const { user } = await createUserWithEmailAndPassword(auth, email, password);
     const userRef = doc(db, "users", user.uid);
 
@@ -45,6 +50,8 @@ export const authService = {
 
   /** Log in an existing user */
   async loginUser({ email, password }: LoginData) {
+    // Ensure persistence is set before signing in so the session persists across reloads
+    await setPersistence(auth, browserLocalPersistence);
     return await signInWithEmailAndPassword(auth, email, password);
   },
 

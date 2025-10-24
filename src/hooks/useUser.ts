@@ -2,6 +2,9 @@ import { useEffect, useState, useCallback } from "react";
 import { User } from "../types/models";
 import { userService } from "../services/userService";
 import { toast } from "sonner";
+import { clientService } from "../services/clientService";
+import { appointmentService } from "../services/appointmentService";
+import { parseISO, addDays, isBefore } from "date-fns";
 
 interface UseUserReturn {
   user: User | null;
@@ -31,6 +34,74 @@ export const useUser = (userUid?: string): UseUserReturn => {
     try {
       const userData = await userService.getById(uid);
       setUser(userData);
+      // After we have the user, fetch clients and sync recent/future recurrences
+      (async () => {
+        try {
+          // Define a window: past 7 days .. next 7 days
+          const today = new Date();
+          const windowStart = addDays(today, -7);
+          const windowEnd = addDays(today, 7);
+          const windowStartStr = windowStart.toISOString().slice(0,10);
+          const windowEndStr = windowEnd.toISOString().slice(0,10);
+
+          // Load clients for this user
+          const clients = await clientService.getAllByUser(uid);
+          // Load existing appointments in the window once
+          const existingAppointments = await appointmentService.getAppointmentsByDateRange(uid, windowStartStr, windowEndStr);
+
+          for (const client of clients) {
+            const rec = client.recurrence;
+            if (!rec || rec.active === false) continue;
+            if (!rec.anchorDate || !rec.anchorTime) continue;
+
+            // Start from the anchor, advance to windowStart
+            const current = new Date(`${rec.anchorDate}T${rec.anchorTime}`);
+            let safety = 0;
+            const maxIter = 500;
+
+            while (isBefore(current, windowStart) && safety < maxIter) {
+              if (rec.frequency === 'weekly') current.setDate(current.getDate() + 7);
+              else if (rec.frequency === 'biweekly') current.setDate(current.getDate() + 14);
+              else if (rec.frequency === 'monthly') current.setMonth(current.getMonth() + 1);
+              safety++;
+            }
+
+            safety = 0;
+            while (current <= windowEnd && safety < maxIter) {
+              const dateStr = current.toISOString().split('T')[0];
+              const timeStr = current.toTimeString().slice(0,5);
+
+              const exists = existingAppointments.some(a => a.clientId === client.id && a.date === dateStr && a.time === timeStr);
+              if (!exists) {
+                // create appointment object for this recurrence occurrence
+                try {
+                  await appointmentService.create({
+                    userId: uid,
+                    clientId: client.id!,
+                    date: dateStr,
+                    time: timeStr,
+                    value: rec.value ?? 0,
+                    duration: rec.duration ?? 60,
+                    status: 'scheduled',
+                    paymentStatus: 'pending',
+                    notes: 'Gerado automaticamente a partir de recorrência',
+                  });
+                } catch (err) {
+                  console.error('Erro ao criar compromisso gerado por recorrência:', err);
+                }
+              }
+
+              if (rec.frequency === 'weekly') current.setDate(current.getDate() + 7);
+              else if (rec.frequency === 'biweekly') current.setDate(current.getDate() + 14);
+              else if (rec.frequency === 'monthly') current.setMonth(current.getMonth() + 1);
+
+              safety++;
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao sincronizar recorrências para o usuário:', err);
+        }
+      })();
     } catch (err) {
       const errorMessage = "Erro ao carregar dados do usuário";
       setError(errorMessage);

@@ -9,13 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppointments } from "../hooks/useAppointments";
-import { useAuthContext } from "../contexts/AuthContext";
+import { useAuthContext } from "../contexts/authContextBase";
 import { useClients } from "../hooks/useClients";
 import { LoadingWrapper } from "./LoadingWrapper";
 import { AppointmentFormSchema } from "../schemas/validationSchemas";
 import { toast } from "sonner";
 import { Calendar, Clock, DollarSign, Timer, User, FileText } from "lucide-react";
 import { AppointmentStatus, PaymentStatus } from "@/types/models";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label as UiLabel } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 interface AppointmentModalProps {
   open: boolean;
@@ -25,8 +29,12 @@ interface AppointmentModalProps {
 export const AppointmentCreateModal = ({ open, onOpenChange }: AppointmentModalProps) => {
   const { firebaseUser } = useAuthContext();
   const { createAppointment } = useAppointments(firebaseUser?.uid);
-  const { clients, loading: clientsLoading, error: clientsError } = useClients(firebaseUser?.uid);
+  const { clients, loading: clientsLoading, error: clientsError, editClient } = useClients(firebaseUser?.uid);
+  const [setClientRecurrence, setSetClientRecurrence] = useState(false);
+  const [clientRecurrenceFrequency, setClientRecurrenceFrequency] = useState<"weekly" | "biweekly" | "monthly">("weekly");
   
+  type FormData = typeof AppointmentFormSchema._type;
+
   const {
     register,
     handleSubmit,
@@ -57,17 +65,40 @@ export const AppointmentCreateModal = ({ open, onOpenChange }: AppointmentModalP
     }
 
     try {
-      await createAppointment({
+      const payload: Omit<import("@/types/models").Appointment, "id"> = {
         userId: firebaseUser.uid,
-        clientId: data.clientId,
-        date: data.date,
-        time: data.time,
-        value: data.value,
-        duration: data.duration,
-        status: data.status,
-        paymentStatus: data.paymentStatus,
+        clientId: data.clientId!,
+        date: data.date!,
+        time: data.time!,
+        value: data.value!,
+        duration: data.duration!,
+        status: data.status!,
+        paymentStatus: data.paymentStatus!,
         notes: data.notes,
-      });
+      };
+
+      await createAppointment(payload);
+
+      // If user opted to set recurrence for the client, update client record
+      if (setClientRecurrence && data.clientId) {
+        try {
+          // attach recurrence to client using the appointment date/time as the anchor
+          await editClient(data.clientId!, {
+            recurrence: {
+              frequency: clientRecurrenceFrequency,
+              anchorDate: data.date!,
+              anchorTime: data.time!,
+              duration: data.duration!,
+              value: data.value!,
+              active: true,
+            }
+          });
+          toast.success("Recorrência aplicada ao cliente");
+        } catch (err) {
+          console.error("Erro ao atualizar recorrência do cliente:", err);
+          toast.error("Não foi possível atualizar a recorrência do cliente.");
+        }
+      }
 
       onOpenChange(false);
       reset();
@@ -195,7 +226,7 @@ export const AppointmentCreateModal = ({ open, onOpenChange }: AppointmentModalP
                   id="value"
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="5"
                   {...register("value", { valueAsNumber: true })}
                   className={errors.value ? "border-destructive" : ""}
                 />
@@ -243,26 +274,35 @@ export const AppointmentCreateModal = ({ open, onOpenChange }: AppointmentModalP
               </div>
             </div>
 
-            {/* Notes */}
+            {/* Option: attach recurrence to client when creating this appointment */}
             <div className="space-y-2">
-              <Label htmlFor="notes" className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Observações
-              </Label>
-              <Textarea
-                id="notes"
-                placeholder="Adicione observações sobre o compromisso..."
-                {...register("notes")}
-                className={errors.notes ? "border-destructive" : ""}
-                rows={3}
-              />
-              {errors.notes && (
-                <p className="text-sm text-destructive">{errors.notes.message}</p>
+              <Label>Aplicar recorrência ao cliente?</Label>
+              <div className="flex items-center gap-3">
+                <input id="setClientRecurrence" type="checkbox" checked={setClientRecurrence} onChange={(e) => setSetClientRecurrence(e.target.checked)} />
+                <label htmlFor="setClientRecurrence" className="text-sm">Sim, criar recorrência para o cliente</label>
+              </div>
+              {setClientRecurrence && (
+                <div className="mt-2">
+                  <Label>Frequência</Label>
+                  <Select value={clientRecurrenceFrequency} onValueChange={(val) => {
+                    if (val === "weekly" || val === "biweekly" || val === "monthly") setClientRecurrenceFrequency(val);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekly">Semanal</SelectItem>
+                      <SelectItem value="biweekly">Quinzenal</SelectItem>
+                      <SelectItem value="monthly">Mensal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
             </div>
           </div>
 
           <DialogFooter>
+            <div className="flex flex-row justify-self-end gap-4">
             <Button
               type="button"
               variant="outline"
@@ -278,6 +318,7 @@ export const AppointmentCreateModal = ({ open, onOpenChange }: AppointmentModalP
             >
               {isSubmitting ? "Criando..." : "Criar"}
             </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
