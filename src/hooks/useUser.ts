@@ -67,27 +67,35 @@ export const useUser = (userUid?: string): UseUserReturn => {
             }
 
             safety = 0;
+            // Build exceptions lookup to avoid creating appointments for overridden occurrences
+            const exceptions = new Set<string>((client.recurrence?.exceptions || []).map((e: { date: string }) => e.date));
+
             while (current <= windowEnd && safety < maxIter) {
               const dateStr = current.toISOString().split('T')[0];
               const timeStr = current.toTimeString().slice(0,5);
 
-              const exists = existingAppointments.some(a => a.clientId === client.id && a.date === dateStr && a.time === timeStr);
-              if (!exists) {
-                // create appointment object for this recurrence occurrence
-                try {
-                  await appointmentService.create({
-                    userId: uid,
-                    clientId: client.id!,
-                    date: dateStr,
-                    time: timeStr,
-                    value: rec.value ?? 0,
-                    duration: rec.duration ?? 60,
-                    status: 'scheduled',
-                    paymentStatus: 'pending',
-                    notes: 'Gerado automaticamente a partir de recorrência',
-                  });
-                } catch (err) {
-                  console.error('Erro ao criar compromisso gerado por recorrência:', err);
+              // Skip creating an appointment if this date is recorded as an exception
+              if (!exceptions.has(dateStr)) {
+                const exists = existingAppointments.some(a => a.clientId === client.id && a.date === dateStr && a.time === timeStr);
+                if (!exists) {
+                  // create appointment object for this recurrence occurrence
+                  try {
+                    // Ensure a positive value is provided to satisfy validation.
+                    const resolvedValue = (rec.value) ?? 1;
+                    await appointmentService.create({
+                      userId: uid,
+                      clientId: client.id!,
+                      date: dateStr,
+                      time: timeStr,
+                      value: resolvedValue,
+                      duration: rec.duration ?? 60,
+                      status: 'scheduled',
+                      paymentStatus: 'pending',
+                      // intentionally not setting notes to keep observation field empty
+                    });
+                  } catch (err) {
+                    console.error('Erro ao criar compromisso gerado por recorrência:', err);
+                  }
                 }
               }
 

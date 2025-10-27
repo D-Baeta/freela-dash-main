@@ -23,15 +23,29 @@ export const ClientSchema = z.object({
   id: z.string().optional(),
   userId: z.string().min(1, "ID do usuário é obrigatório"),
   name: z.string().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
-  phone: z.string().min(1, "Telefone é obrigatório").regex(/^[\d\s\-()+]+$/, "Telefone inválido"),
+  phone: z.string().regex(/^[\d\s\-()+]*$/, "Telefone inválido").optional(),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   notes: z.string().max(500, "Notas muito longas").optional(),
+  beginningDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  address: z.string().max(300, "Endereço muito longo").optional(),
+  cpf: z.string().regex(/^\d{11}$/, "CPF inválido (apenas dígitos)").optional(),
   recurrence: z.object({
     frequency: z.enum(["weekly", "biweekly", "monthly"]),
     anchorDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     anchorTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
     duration: z.number().optional(),
     value: z.number().optional(),
+    exceptions: z
+      .array(
+        z.object({
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          type: z.enum(["cancelled", "rescheduled"]),
+          newDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+          newTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+        })
+      )
+      .optional(),
   }).optional(),
   createdAt: z.union([z.date(), z.any()]).optional().transform((val) => 
     val instanceof Date ? val : val?.toDate ? val.toDate() : new Date()

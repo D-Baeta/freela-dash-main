@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAppointments } from "../hooks/useAppointments";
 import { useAuthContext } from "../contexts/authContextBase";
 import { useClients } from "../hooks/useClients";
+import { clientService } from "@/services/clientService";
 import { LoadingWrapper } from "./LoadingWrapper";
 import { AppointmentFormSchema } from "../schemas/validationSchemas";
 import { toast } from "sonner";
@@ -45,7 +46,7 @@ export const AppointmentCreateModal = ({ open, onOpenChange }: AppointmentModalP
   } = useForm<typeof AppointmentFormSchema._type>({
     resolver: zodResolver(AppointmentFormSchema),
     defaultValues: {
-      clientId: "",
+      clientId: "__new__",
       date: new Date().toISOString().split('T')[0],
       time: "",
       value: 0,
@@ -57,6 +58,16 @@ export const AppointmentCreateModal = ({ open, onOpenChange }: AppointmentModalP
   });
 
   const watchedClientId = watch("clientId");
+  const [newClientName, setNewClientName] = useState<string>("");
+  const newClientInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Auto-focus the new client name input when modal opens and the "create new" option is selected
+  useEffect(() => {
+    if (open && watchedClientId === "__new__") {
+      // small timeout to wait for input to render
+      setTimeout(() => newClientInputRef.current?.focus(), 50);
+    }
+  }, [open, watchedClientId]);
 
   const onSubmit = async (data: typeof AppointmentFormSchema._type) => {
     if (!firebaseUser) {
@@ -65,9 +76,28 @@ export const AppointmentCreateModal = ({ open, onOpenChange }: AppointmentModalP
     }
 
     try {
+      let clientId = data.clientId!;
+
+      // If the user chose to create a new client inline, create it and use the id
+      if (clientId === "__new__") {
+        const nameToCreate = newClientName?.trim();
+        if (!nameToCreate) {
+          toast.error('Informe o nome do novo cliente');
+          return;
+        }
+        try {
+          // use clientService.addClient to create and get id
+          clientId = await clientService.addClient(firebaseUser.uid, { name: nameToCreate });
+        } catch (err) {
+          console.error('Erro ao criar cliente inline:', err);
+          toast.error('Não foi possível criar o cliente');
+          return;
+        }
+      }
+
       const payload: Omit<import("@/types/models").Appointment, "id"> = {
         userId: firebaseUser.uid,
-        clientId: data.clientId!,
+        clientId: clientId,
         date: data.date!,
         time: data.time!,
         value: data.value!,
@@ -80,10 +110,10 @@ export const AppointmentCreateModal = ({ open, onOpenChange }: AppointmentModalP
       await createAppointment(payload);
 
       // If user opted to set recurrence for the client, update client record
-      if (setClientRecurrence && data.clientId) {
+      if (setClientRecurrence && clientId) {
         try {
           // attach recurrence to client using the appointment date/time as the anchor
-          await editClient(data.clientId!, {
+          await editClient(clientId!, {
             recurrence: {
               frequency: clientRecurrenceFrequency,
               anchorDate: data.date!,
@@ -148,6 +178,7 @@ export const AppointmentCreateModal = ({ open, onOpenChange }: AppointmentModalP
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__new__">Criar novo cliente</SelectItem>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id!}>
                         {client.name}
@@ -157,6 +188,11 @@ export const AppointmentCreateModal = ({ open, onOpenChange }: AppointmentModalP
                 </Select>
                 {errors.clientId && (
                   <p className="text-sm text-destructive">{errors.clientId.message}</p>
+                )}
+                {watchedClientId === "__new__" && (
+                  <div className="mt-2">
+                    <Input ref={newClientInputRef} placeholder="Nome do novo cliente" value={newClientName} onChange={(e) => setNewClientName(e.target.value)} />
+                  </div>
                 )}
               </LoadingWrapper>
             </div>

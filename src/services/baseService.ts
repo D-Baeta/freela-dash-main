@@ -39,6 +39,31 @@ export abstract class BaseService<T extends { id?: string }> {
     }
   }
 
+  /**
+   * Remove undefined fields recursively from an object so it can be safely
+   * written to Firestore (which rejects undefined values).
+   */
+  protected sanitizeForFirestore(value: unknown): unknown {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (Array.isArray(value)) {
+      return value
+        .map((v) => this.sanitizeForFirestore(v))
+        .filter((v) => v !== undefined);
+    }
+    if (typeof value === 'object') {
+      const obj: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        if (v === undefined) continue;
+        const sanitized = this.sanitizeForFirestore(v);
+        if (sanitized === undefined) continue;
+        obj[k] = sanitized;
+      }
+      return obj;
+    }
+    return value;
+  }
+
   protected handleFirestoreError(error: unknown, operation: string): never {
     console.error(`Firestore error during ${operation}:`, error);
     
@@ -61,8 +86,9 @@ export abstract class BaseService<T extends { id?: string }> {
   async create(data: Omit<T, "id">): Promise<string> {
     try {
       const validatedData = this.validateData(data);
+      const sanitized = this.sanitizeForFirestore(validatedData) as Record<string, unknown>;
       const docRef = await addDoc(this.collection, {
-        ...validatedData,
+        ...sanitized,
         createdAt: serverTimestamp(),
       });
       return docRef.id;
@@ -117,15 +143,16 @@ export abstract class BaseService<T extends { id?: string }> {
   async update(id: string, data: Partial<T>): Promise<void> {
     try {
       const updateData = { ...data }; // don't validate the whole schema
-      delete updateData.id;
+      delete (updateData as Partial<T>).id;
 
-      if (Object.keys(updateData).length === 0) {
+      const sanitized = this.sanitizeForFirestore(updateData) as Record<string, unknown> | undefined;
+      if (!sanitized || Object.keys(sanitized).length === 0) {
         throw new Error('Nenhum dado válido para atualizar');
       }
 
       const docRef = doc(this.collection, id);
       await updateDoc(docRef, {
-        ...updateData,
+        ...sanitized,
         updatedAt: serverTimestamp(),
       });
     } catch (error) {
@@ -153,9 +180,10 @@ export abstract class BaseService<T extends { id?: string }> {
       
       items.forEach((item) => {
         const validatedData = this.validateData(item);
+        const sanitized = this.sanitizeForFirestore(validatedData) as Record<string, unknown>;
         const docRef = doc(this.collection);
         batch.set(docRef, {
-          ...validatedData,
+          ...sanitized,
           createdAt: serverTimestamp(),
         });
         ids.push(docRef.id);
@@ -177,17 +205,19 @@ export abstract class BaseService<T extends { id?: string }> {
       const batch = writeBatch(db);
       
       updates.forEach(({ id, data }) => {
-        const validatedData = this.validateData(data);
+        const validatedData = this.validateData(data as unknown as T);
         const docRef = doc(this.collection, id);
-        
+
+        // Remove undefineds and any id field
         const updateData = Object.fromEntries(
           Object.entries(validatedData).filter(([_, value]) => value !== undefined)
         );
-        delete updateData.id;
-        
-        if (Object.keys(updateData).length > 0) {
+        delete (updateData as Record<string, unknown>).id;
+
+        const sanitized = this.sanitizeForFirestore(updateData) as Record<string, unknown>;
+        if (sanitized && Object.keys(sanitized).length > 0) {
           batch.update(docRef, {
-            ...updateData,
+            ...sanitized,
             updatedAt: serverTimestamp(),
           });
         }

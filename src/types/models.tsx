@@ -19,9 +19,14 @@ export interface Client {
   id?: string;
   userId: string;
   name: string;
-  phone: string;
-  email: string;
+  phone?: string;
+  email?: string;
   notes?: string;
+  // optional personal fields
+  beginningDate?: string; // YYYY-MM-DD when the client relationship started
+  birthDate?: string; // YYYY-MM-DD
+  address?: string;
+  cpf?: string; // brasilian id
   // Optional recurrence definition attached to the client (simplified): only weekly, biweekly or monthly
   recurrence?: {
     active?: boolean;
@@ -32,6 +37,14 @@ export interface Client {
     // optional defaults for created instances
     duration?: number;
     value?: number;
+    // exceptions allow cancelling or rescheduling specific occurrences
+    exceptions?: Array<{
+      date: string; // YYYY-MM-DD of the occurrence being overridden
+      type: "cancelled" | "rescheduled";
+      // when rescheduled, the new target date/time (optional)
+      newDate?: string;
+      newTime?: string;
+    }>;
   };
   createdAt?: Date;
 }

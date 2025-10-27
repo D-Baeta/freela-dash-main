@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type MouseEvent } from "react";
 import { Navigation } from "@/components/Navigation";
 import { useAuthContext } from "../contexts/authContextBase";
 import { useClients } from "../hooks/useClients";
@@ -6,18 +6,20 @@ import { useAppointments } from "../hooks/useAppointments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import RecurrenceModal from "@/components/RecurrenceModal";
-import { Edit, Trash2, Plus, CheckCircle2, X } from "lucide-react";
+import { Edit, Trash2, Plus, CheckCircle2, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingWrapper } from "@/components/LoadingWrapper";
 import { Appointment, appointmentStatusLabels, appointmentStatusColors, getPaymentStatusBadge } from "@/types/models";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AppointmentEditDialog } from "@/components/AppointmentEditDialog";
+import { AppointmentFinishModal } from "@/components/AppointmentFinishModal";
+import ClientNotesModal from "@/components/ClientNotesModal";
 import { ActionIconButton } from "@/components/ActionIconButtons";
 import { usePayment } from "@/hooks/usePayment";
 import { AppointmentCreateModal } from "@/components/AppointmentCreateModal";
 import { ClientModal } from "@/components/ClientModal";
+import { Client } from "@/types/models";
 
 const ClientsPage = () => {
   const { firebaseUser } = useAuthContext();
@@ -31,13 +33,20 @@ const ClientsPage = () => {
   const [recClientId, setRecClientId] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [isClientModalReadOnly, setIsClientModalReadOnly] = useState<boolean>(false);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedClientId && clients.length > 0) {
-      setSelectedClientId(clients[0].id ?? null);
+      // default to the first client alphabetically
+      const sorted = [...clients].sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+      setSelectedClientId(sorted[0].id ?? null);
     }
   }, [clients, selectedClientId]);
+
+  // keep a sorted copy of clients for display (A-Z)
+  const sortedClients = [...clients].sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
 
   const handleMarkAsPaid = async (appointmentId: string) => {
     try {
@@ -81,7 +90,7 @@ const ClientsPage = () => {
   };
 
 
-  const handleOpenAppointment = (apt: Appointment) => {
+  const handleFinishAppointment = (apt: Appointment) => {
     setSelectedAppointment(apt);
     setIsDialogOpen(true);
   };
@@ -91,28 +100,35 @@ const ClientsPage = () => {
   };
 
   const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState<'all' | number>('all');
+  const [notesModalOpen, setNotesModalOpen] = useState(false);
+
+  const monthNames = [
+    'Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
       <Navigation />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8 animate-fade-in flex flex-col md:flex-row md:justify-between md:items-center gap-6">
+          <div className="mb-8 animate-fade-in flex flex-col md:flex-row md:justify-between md:items-center gap-6">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold mb-2">Clientes</h1>
             <p className="text-muted-foreground">Gerencie seus clientes e visualize compromissos por cliente</p>
           </div>
           <div>
-            <CardContent className="flex flex-row gap-4 p-0">
-              <Button 
-              onClick={() => setIsClientModalOpen(true)}
-              className="text-md h-12 px-4 shadow-glow hover:shadow-lg transition-smooth">
+            {/* Make action buttons stacked and full-width on small screens for better touch targets */}
+            <CardContent className="flex flex-col sm:flex-row gap-2 sm:gap-4 p-0">
+              <Button
+                onClick={() => { setEditingClient(null); setIsClientModalReadOnly(false); setIsClientModalOpen(true); }}
+                className="text-md h-12 px-4 shadow-glow hover:shadow-lg transition-smooth w-full sm:w-auto">
                 <Plus className="w-4 h-4" />
                 Adicionar cliente
               </Button>
               <Button
-              onClick={() => setIsAppointmentModalOpen(true)}
-              className="text-md h-12 px-4 shadow-glow hover:shadow-lg transition-smooth">
+                onClick={() => setIsAppointmentModalOpen(true)}
+                className="text-md h-12 px-4 shadow-glow hover:shadow-lg transition-smooth w-full sm:w-auto">
                 <Plus className="w-4 h-4" />
                 Adicionar compromisso
               </Button>
@@ -124,23 +140,32 @@ const ClientsPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Left: client list */}
             <div className="space-y-2 lg:col-span-1">
-              {clients.map((client) => {
+              {sortedClients.map((client) => {
                 const count = appointments.filter(a => a.clientId === client.id).length;
                 return (
                   <div
                     key={client.id}
-                    onClick={() => setSelectedClientId(client.id ?? null)}
                     className={cn(
-                      "cursor-pointer p-4 rounded-lg border border-border bg-card hover:shadow-md",
-                      selectedClientId === client.id ? "ring-2 ring-primary" : ""
+                      "p-4 sm:p-4 rounded-lg border border-border bg-card hover:shadow-md",
+                      selectedClientId === client.id ? "ring-2 ring-primary" : "",
+                      "cursor-pointer touch-manipulation"
                     )}
+                    onClick={() => setSelectedClientId(client.id ?? null)}
                   >
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-semibold">{client.name}</div>
                         <div className="text-sm text-muted-foreground">{client.email || client.phone}</div>
                       </div>
-                      <div className="text-sm text-muted-foreground">{count}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm text-muted-foreground">{count}</div>
+                        <ActionIconButton
+                          icon={<ExternalLink className="h-4 w-4" />}
+                          title="Abrir detalhes do cliente"
+                          onClick={((e: MouseEvent) => { e.stopPropagation(); setEditingClient(client); setIsClientModalReadOnly(true); setIsClientModalOpen(true); }) as unknown as () => void}
+                          className="h-10 w-10 sm:h-8 sm:w-8"
+                        />
+                      </div>
                     </div>
                   </div>
                 );
@@ -215,14 +240,27 @@ const ClientsPage = () => {
                       <CardTitle>Histórico de {selectedClient.name}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="rounded-md border">
-                        <Table>
+                      <div className="flex items-center justify-start mb-3">
+                        <select
+                          value={selectedMonthFilter === 'all' ? 'all' : String(selectedMonthFilter)}
+                          onChange={(e) => setSelectedMonthFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                          className="bg-background border border-border rounded-md px-3 py-2 outline-none"
+                        >
+                          <option value="all">Todos os meses</option>
+                          {monthNames.map((m, idx) => (
+                            <option key={m} value={idx}>{m}</option>
+                          ))}
+                        </select>
+                        <Button size="sm" className="ml-3" onClick={() => setNotesModalOpen(true)}>Notas</Button>
+                      </div>
+                      <div className="rounded-md border overflow-x-auto">
+                        <Table className="min-w-[600px]">
                           <TableHeader>
                             <TableRow>
                               <TableHead>Data</TableHead>
                               <TableHead>Hora</TableHead>
                               <TableHead>Status</TableHead>
-                              <TableHead>Editar</TableHead>
+                              <TableHead></TableHead>
                               <TableHead>|</TableHead>
                               <TableHead>Valor</TableHead>
                               <TableHead>Pagamento</TableHead>
@@ -230,15 +268,21 @@ const ClientsPage = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {appointments.filter(a => a.clientId === selectedClient.id).length === 0 ? (
+                              {appointments.filter(a => a.clientId === selectedClient.id).length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={7} className="text-center text-muted-foreground">Nenhum compromisso</TableCell>
                               </TableRow>
                             ) : (
-                              appointments
-                                .filter(a => a.clientId === selectedClient.id)
-                                .sort((a,b) => a.date.localeCompare(b.date))
-                                .map((apt) => (
+                                // apply client filter, then month filter, then sort
+                                appointments
+                                  .filter(a => a.clientId === selectedClient.id)
+                                  .filter(a => selectedMonthFilter === 'all' ? true : parseISO(a.date).getMonth() === selectedMonthFilter)
+                                  .sort((a,b) => {
+                                    // sort by date desc (latest first). If same date, sort by time desc
+                                    if (a.date === b.date) return (b.time ?? "").localeCompare(a.time ?? "");
+                                    return b.date.localeCompare(a.date);
+                                  })
+                                  .map((apt) => (
                                   <TableRow key={apt.id}>
                                     <TableCell>{format(parseISO(apt.date), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                                     <TableCell>{apt.time}</TableCell>
@@ -247,9 +291,9 @@ const ClientsPage = () => {
                                     </TableCell>
                                     <TableCell>
                                       <ActionIconButton
-                                        icon={<Edit className="h-4 w-4" />}
-                                        title="Editar"
-                                        onClick={() => handleOpenAppointment(apt)}
+                                        icon={<CheckCircle2 className="h-4 w-4" />}
+                                        title="Concluir sessão"
+                                        onClick={() => handleFinishAppointment(apt)}
                                       />
                                     </TableCell>
                                     <TableCell>|</TableCell>
@@ -300,13 +344,21 @@ const ClientsPage = () => {
             await editClient(recClientId, { recurrence: rec });
           }}
         />
-        <ClientModal open={isClientModalOpen} onOpenChange={setIsClientModalOpen} />
+    <ClientModal open={isClientModalOpen} onOpenChange={(open) => { setIsClientModalOpen(open); if (!open) { setEditingClient(null); setIsClientModalReadOnly(false); } }} client={editingClient} viewOnly={isClientModalReadOnly} />
         <AppointmentCreateModal open={isAppointmentModalOpen} onOpenChange={setIsAppointmentModalOpen} />
-        <AppointmentEditDialog
+        <AppointmentFinishModal
           appointment={selectedAppointment}
           open={isDialogOpen}
           onOpenChange={(open) => { setIsDialogOpen(open); if(!open) setSelectedAppointment(null); }}
           onSave={handleSaveAppointment}
+        />
+        <ClientNotesModal
+          open={notesModalOpen}
+          onOpenChange={setNotesModalOpen}
+          clientName={selectedClient?.name}
+          appointments={appointments.filter(a => a.clientId === selectedClient?.id)}
+          monthFilter={selectedMonthFilter}
+          onSaveNote={async (id, notes) => { await editAppointment(id, { notes }); }}
         />
       </main>
     </div>

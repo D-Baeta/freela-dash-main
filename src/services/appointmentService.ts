@@ -70,10 +70,18 @@ export class AppointmentService extends BaseService<Appointment> {
       }
 
       iter = 0;
+      // Build a quick lookup for recurrence exceptions (dates that should be skipped)
+      const exceptions = new Set<string>(
+        (client.recurrence?.exceptions || []).map((e: { date: string }) => e.date),
+      );
+
       while (current <= end && iter < maxIter) {
         const dateStr = current.toISOString().split('T')[0];
         const timeStr = current.toTimeString().slice(0,5);
-        if (!hasRealAt(client.id, dateStr, timeStr)) {
+        // Skip generation if this date is listed in exceptions (cancelled/rescheduled)
+        if (exceptions.has(dateStr)) {
+          // If there's an exception, don't generate the virtual occurrence for this date
+        } else if (!hasRealAt(client.id, dateStr, timeStr)) {
           virtual.push({
             id: `virtual-${client.id}-${dateStr}-${timeStr}`,
             clientId: client.id,
